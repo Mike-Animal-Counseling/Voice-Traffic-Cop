@@ -251,18 +251,28 @@ function App() {
               <div className="meter">
                 <div className="meter__fill" style={{ width: `${Math.max(8, snapshot.volume * 100)}%` }} />
               </div>
-              <div className="mic-readout">
-                <span>{snapshot.smoothedPitch ? `${Math.round(snapshot.smoothedPitch)} Hz` : 'No pitch yet'}</span>
-                <span>{game.emergencyStop ? 'All stop' : `${axisLabel(game.activeAxis)} green`}</span>
-              </div>
-              <div className="level-strip">
-                <span>{levelName}</span>
-                <span>{game.difficultyLevel >= 3 ? 'Max level' : `Upgrade at ${game.levelGoal}`}</span>
+              <div className="mic-stats">
+                <div className="mic-stat">
+                  <span className="mic-stat__label">Pitch</span>
+                  <strong>{snapshot.smoothedPitch ? `${Math.round(snapshot.smoothedPitch)} Hz` : 'Listening'}</strong>
+                </div>
+                <div className="mic-stat">
+                  <span className="mic-stat__label">Light</span>
+                  <strong>{game.emergencyStop ? 'All stop' : axisLabel(game.activeAxis)}</strong>
+                </div>
+                <div className="mic-stat">
+                  <span className="mic-stat__label">Level</span>
+                  <strong>{levelName}</strong>
+                </div>
+                <div className="mic-stat">
+                  <span className="mic-stat__label">Next</span>
+                  <strong>{game.difficultyLevel >= 3 ? 'Maxed' : game.levelGoal}</strong>
+                </div>
               </div>
               <div className="meter meter--level">
                 <div className="meter__fill meter__fill--level" style={{ width: `${Math.max(8, progressToNext)}%` }} />
               </div>
-              <div className="hint-pill">Low hum = North-South, high sing = East-West, loud burst = stop, steady note = boost.</div>
+              <div className="hint-pill">Voice: Low = North-South, High = East-West, Loud = Stop, Hold = Boost</div>
             </aside>
 
             <div className="announcement-bar">{game.announcement}</div>
@@ -270,28 +280,32 @@ function App() {
             {game.phase === 'title' && (
               <div className="overlay">
                 <div className="card card--hero">
-                  <p className="card__eyebrow">Juniper Junction Duty</p>
-                  <h1>Voice Traffic Cop</h1>
-                  <p>A calm little voice-controlled traffic game. Help Pip Bristle keep the intersection flowing.</p>
-                  <div className="quickstart-list">
-                    <div>
-                      <strong>Low hum</strong>
-                      <span>Switch to North-South green.</span>
+                  <div className="card__body">
+                    <p className="card__eyebrow">Juniper Junction Duty</p>
+                    <h1>Voice Traffic Cop</h1>
+                    <p>A calm little voice-controlled traffic game. Help Pip Bristle keep the intersection flowing.</p>
+                    <div className="quickstart-list">
+                      <div>
+                        <strong>Low hum</strong>
+                        <span>Switch to North-South green.</span>
+                      </div>
+                      <div>
+                        <strong>High hum</strong>
+                        <span>Switch to East-West green.</span>
+                      </div>
+                      <div>
+                        <strong>Loud burst</strong>
+                        <span>Emergency stop. Hold a steady tone for a small boost.</span>
+                      </div>
                     </div>
-                    <div>
-                      <strong>High hum</strong>
-                      <span>Switch to East-West green.</span>
-                    </div>
-                    <div>
-                      <strong>Loud burst</strong>
-                      <span>Emergency stop. Hold a steady tone for a small boost.</span>
-                    </div>
+                    <p className="start-tip">You only need a short hum to switch. The game starts easy and speeds up later.</p>
                   </div>
-                  <p className="start-tip">You only need a short hum to switch. The game starts easy and speeds up later.</p>
-                  <button className="primary-button" onClick={startRun}>
-                    {snapshot.permission === 'granted' ? 'Start Patrol' : 'Enable Mic & Start'}
-                  </button>
-                  <p className="card__microcopy">Watch the mic panel on the left if you want to see what Pip is hearing.</p>
+                  <div className="card__footer">
+                    <button className="primary-button" onClick={startRun}>
+                      {snapshot.permission === 'granted' ? 'Start Patrol' : 'Enable Mic & Start'}
+                    </button>
+                    <p className="card__microcopy">Watch the mic panel on the left if you want to see what Pip is hearing.</p>
+                  </div>
                 </div>
               </div>
             )}

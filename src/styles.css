@@ -653,8 +653,8 @@ button {
   display: inline-flex;
   flex-direction: column;
   gap: 0.18rem;
-  padding: 0.85rem 1rem;
-  border-radius: 1.35rem;
+  padding: 0.7rem 0.88rem;
+  border-radius: 1.15rem;
   background: rgba(26, 41, 48, 0.62);
   box-shadow: 0 14px 28px rgba(22, 20, 20, 0.18);
 }
@@ -664,38 +664,40 @@ button {
 .metric__label {
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   opacity: 0.75;
 }
 
 .status-panel {
   display: flex;
   gap: 0.9rem;
-  padding: 0.75rem;
-  border-radius: 1.5rem;
+  padding: 0.6rem;
+  border-radius: 1.2rem;
   background: rgba(26, 41, 48, 0.48);
 }
 
 .metric {
   min-width: 5.7rem;
-  padding: 0.5rem 0.85rem;
-  border-radius: 1rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 0.9rem;
   background: rgba(255, 248, 234, 0.1);
 }
 
 .metric strong {
   display: block;
-  font-size: 1.15rem;
-  margin-top: 0.16rem;
+  font-size: 1rem;
+  margin-top: 0.12rem;
 }
 
 .mic-panel {
   position: absolute;
   left: 2rem;
   bottom: 1.8rem;
-  width: 28rem;
-  padding: 1rem 1rem 0.9rem;
-  border-radius: 1.55rem;
+  width: clamp(14rem, 28%, 21rem);
+  max-width: calc(100% - 4rem);
+  min-width: 13rem;
+  padding: 0.68rem 0.72rem 0.62rem;
+  border-radius: 1.1rem;
   background: rgba(26, 41, 48, 0.58);
   box-shadow: 0 16px 36px rgba(29, 20, 19, 0.16);
   z-index: 20;
@@ -704,19 +706,21 @@ button {
 .mic-panel__top {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-bottom: 0.7rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
 }
 
 .mic-panel__command {
   margin-left: auto;
   color: #e7fff9;
-  font-size: 0.85rem;
+  font-size: 0.68rem;
+  max-width: 100%;
 }
 
 .permission-dot {
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 0.62rem;
+  height: 0.62rem;
   border-radius: 50%;
   background: #ffd47d;
 }
@@ -732,7 +736,7 @@ button {
 }
 
 .meter {
-  height: 0.8rem;
+  height: 0.52rem;
   border-radius: 999px;
   background: rgba(255, 251, 244, 0.12);
   overflow: hidden;
@@ -745,27 +749,41 @@ button {
   box-shadow: 0 0 18px rgba(135, 241, 192, 0.4);
 }
 
-.mic-readout {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 0.7rem;
-  font-size: 0.86rem;
-  color: rgba(255, 247, 232, 0.88);
+.mic-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.4rem;
 }
 
-.level-strip {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 0.65rem;
-  font-size: 0.8rem;
-  color: rgba(255, 244, 220, 0.82);
+.mic-stat {
+  padding: 0.34rem 0.45rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 248, 234, 0.08);
+  min-width: 0;
+}
+
+.mic-stat__label {
+  display: block;
+  margin-bottom: 0.08rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 243, 219, 0.62);
+}
+
+.mic-stat strong {
+  display: block;
+  font-size: 0.71rem;
+  color: rgba(255, 247, 232, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meter--level {
-  margin-top: 0.45rem;
-  height: 0.6rem;
+  margin-top: 0.38rem;
+  height: 0.38rem;
 }
 
 .meter__fill--level {
@@ -774,13 +792,14 @@ button {
 }
 
 .hint-pill {
-  margin-top: 0.8rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 1rem;
-  background: rgba(255, 248, 234, 0.1);
+  margin-top: 0.4rem;
+  padding: 0.36rem 0.45rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 248, 234, 0.08);
   color: #fff4dd;
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
 }
 
 .announcement-bar {
@@ -820,6 +839,34 @@ button {
   background: linear-gradient(180deg, rgba(255, 250, 240, 0.93), rgba(255, 236, 214, 0.88));
   color: #6b3e2d;
   box-shadow: 0 24px 70px rgba(42, 20, 15, 0.24);
+}
+
+.card--hero {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card__body {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.15rem;
+  scrollbar-width: none;
+}
+
+.card__body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.card__footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  background: transparent;
+}
+
+.card__footer .primary-button {
+  width: 100%;
 }
 
 .scene-stage .announcement-bar {
@@ -914,6 +961,10 @@ button {
     padding: 1.35rem;
   }
 
+  .card__footer {
+    padding-top: 0.8rem;
+  }
+
   .gameover-stats {
     grid-template-columns: 1fr;
   }
@@ -921,7 +972,18 @@ button {
 
 @media (max-height: 860px) {
   .mic-panel {
-    padding: 0.85rem 0.9rem 0.8rem;
+    padding: 0.72rem 0.78rem 0.68rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .mic-panel {
+    width: clamp(14rem, 34%, 21rem);
+  }
+
+  .mic-panel__command {
+    margin-left: 0;
+    flex-basis: 100%;
   }
 }
 
