@@ -2245,55 +2245,89 @@ kbd {
 
 .signal-cluster {
   position: absolute;
-  z-index: 10;
-  width: 0.72rem;
-  height: 2rem;
+  z-index: 6;
+  width: 3.9rem;
+  height: 6.5rem;
   overflow: visible;
-  border: 1px solid rgba(18, 28, 19, 0.5);
-  border-radius: 0.32rem;
-  background: rgba(12, 23, 17, 0.42);
-  box-shadow: inset 0 0 0.2rem rgba(0, 0, 0, 0.52);
-  backdrop-filter: brightness(0.5) saturate(0.42);
   pointer-events: none;
+  transform-origin: center bottom;
 }
 
-.signal-cluster--far-left { left: calc(36.05% - 0.36rem); top: 27.3%; }
-.signal-cluster--far-right { left: calc(56.15% - 0.36rem); top: 27.5%; }
+.signal-cluster--far-left { left: calc(36.05% - 1.95rem); top: 23.2%; }
+.signal-cluster--far-right { left: calc(56.15% - 1.95rem); top: 23.4%; }
 .signal-cluster--near-left,
-.signal-cluster--near-right { width: 1.05rem; height: 2.8rem; border-radius: 0.42rem; }
-.signal-cluster--near-left { left: calc(27.55% - 0.525rem); top: 45.8%; }
-.signal-cluster--near-right { left: calc(63.85% - 0.525rem); top: 46.1%; }
+.signal-cluster--near-right {
+  z-index: 22;
+  width: 5.55rem;
+  height: 9.25rem;
+}
+.signal-cluster--near-left { left: calc(27.55% - 2.775rem); top: 40.6%; }
+.signal-cluster--near-right { left: calc(63.85% - 2.775rem); top: 40.9%; }
+
+.signal-cluster__body {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0.24rem 0.18rem rgba(30, 23, 16, 0.34));
+}
+
+.signal-cluster--far-right .signal-cluster__body,
+.signal-cluster--near-right .signal-cluster__body { transform: scaleX(-1); }
 
 .signal-cluster__light {
   position: absolute;
-  left: 50%;
+  left: 50.4%;
   z-index: 1;
-  width: 56%;
+  width: 18.5%;
   aspect-ratio: 1;
   translate: -50% -50%;
   border-radius: 50%;
-  opacity: 0.08;
+  opacity: 0.035;
+  filter: saturate(0.8) brightness(0.64);
   transition: opacity 180ms ease, box-shadow 180ms ease, scale 180ms ease;
 }
 
-.signal-cluster__light--red { top: 18%; color: #ff5148; background: currentColor; }
-.signal-cluster__light--amber { top: 50%; color: #ffc34f; background: currentColor; }
-.signal-cluster__light--green { top: 82%; color: #74f2a5; background: currentColor; }
+.signal-cluster__light--red { top: 19.8%; color: #ff5148; background: currentColor; }
+.signal-cluster__light--amber { top: 31.5%; color: #ffc34f; background: currentColor; }
+.signal-cluster__light--green { top: 43%; color: #74f2a5; background: currentColor; }
 
 .signal-cluster__light.is-lit {
-  opacity: 0.98;
-  scale: 1.06;
+  opacity: 1;
+  scale: 1.04;
+  filter: saturate(1.18) brightness(1.18);
   box-shadow:
-    0 0 0.18rem currentColor,
-    0 0 0.52rem currentColor,
-    0 0 0.9rem color-mix(in srgb, currentColor 66%, transparent),
+    0 0 0.15rem currentColor,
+    0 0 0.4rem currentColor,
+    0 0 0.78rem color-mix(in srgb, currentColor 62%, transparent),
     inset 0 0.1rem 0.16rem rgba(255, 255, 255, 0.88);
   animation: signal-glow 1.4s ease-in-out infinite alternate;
+}
+
+.signal-cluster__reflection {
+  position: absolute;
+  left: 42%;
+  top: 10%;
+  z-index: 2;
+  width: 16%;
+  height: 36%;
+  border-radius: 50%;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 236, 185, 0.18) 48%, transparent 66%);
+  opacity: 0.46;
+  transform: rotate(-8deg);
+  animation: signal-reflection 5.8s ease-in-out infinite;
 }
 
 @keyframes signal-glow {
   from { filter: brightness(0.92); }
   to { filter: brightness(1.24); }
+}
+
+@keyframes signal-reflection {
+  0%, 72%, 100% { opacity: 0.16; translate: -0.1rem 0; }
+  82% { opacity: 0.56; translate: 0.18rem 0; }
 }
 
 .vehicle {

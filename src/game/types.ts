@@ -2,6 +2,7 @@ export type Axis = 'northSouth' | 'eastWest';
 export type Direction = 'northbound' | 'southbound' | 'eastbound' | 'westbound';
 export type GamePhase = 'title' | 'running' | 'paused' | 'gameOver';
 export type DifficultyTier = 'rookie' | 'cadet' | 'captain';
+export type SignalPhase = 'green' | 'yellow' | 'allRed';
 
 export interface VehiclePalette {
   body: string;
@@ -69,6 +70,9 @@ export interface GameState {
   dangerFlash: number;
   delightFlash: number;
   activeAxis: Axis;
+  signalPhase: SignalPhase;
+  pendingAxis: Axis | null;
+  signalTimer: number;
   emergencyStop: boolean;
   boostTimer: number;
   elapsed: number;

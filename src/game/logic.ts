@@ -71,6 +71,11 @@ const DIFFICULTY_STEPS: DifficultyConfig[] = [
 
 const configForLevel = (level: number) => DIFFICULTY_STEPS[Math.min(DIFFICULTY_STEPS.length - 1, level - 1)];
 
+const YELLOW_DURATION = 0.58;
+const ALL_RED_DURATION = 0.34;
+const STOP_LINE_MARGIN = 14;
+const MIN_BUMPER_GAP = 20;
+
 const axisForDirection = (direction: Direction): Axis =>
   direction === 'northbound' || direction === 'southbound' ? 'northSouth' : 'eastWest';
 
@@ -124,26 +129,50 @@ const spawnIntervalForState = (state: GameState, axis: Axis): number => {
   return base * withinLevelPressure;
 };
 
+const distanceToStopLine = (vehicle: Vehicle): number => {
+  const halfLength = vehicle.length / 2;
+  if (vehicle.direction === 'northbound') return vehicle.position - (CENTER_Y + INTERSECTION_SIZE / 2) - halfLength - STOP_LINE_MARGIN;
+  if (vehicle.direction === 'southbound') return CENTER_Y - INTERSECTION_SIZE / 2 - vehicle.position - halfLength - STOP_LINE_MARGIN;
+  if (vehicle.direction === 'eastbound') return CENTER_X - INTERSECTION_SIZE / 2 - vehicle.position - halfLength - STOP_LINE_MARGIN;
+  return vehicle.position - (CENTER_X + INTERSECTION_SIZE / 2) - halfLength - STOP_LINE_MARGIN;
+};
+
+const axisHasGreen = (vehicle: Vehicle, state: GameState) =>
+  !state.emergencyStop && state.signalPhase === 'green' && state.activeAxis === vehicle.axis;
+
 const desiredSpeed = (vehicle: Vehicle, state: GameState): number => {
   if (state.emergencyStop) return 0;
 
-  const activeForAxis = state.activeAxis === vehicle.axis;
-  const boost = vehicle.axis === state.activeAxis ? state.boostTimer * 20 : 0;
+  const activeForAxis = axisHasGreen(vehicle, state);
+  const boost = activeForAxis ? state.boostTimer * 20 : 0;
   const base = 58 + (vehicle.kind === 'hopper' ? -4 : 6) + boost;
 
   if (activeForAxis) return base;
 
-  const distanceToCenter =
-    vehicle.direction === 'northbound'
-      ? vehicle.position - (CENTER_Y + INTERSECTION_SIZE / 2)
-      : vehicle.direction === 'southbound'
-        ? CENTER_Y - INTERSECTION_SIZE / 2 - vehicle.position
-        : vehicle.direction === 'eastbound'
-          ? CENTER_X - INTERSECTION_SIZE / 2 - vehicle.position
-          : vehicle.position - (CENTER_X + INTERSECTION_SIZE / 2);
-
-  return distanceToCenter < 68 ? 0 : 26;
+  const clearance = distanceToStopLine(vehicle);
+  if (clearance < -2) return base;
+  return Math.min(26, Math.sqrt(Math.max(0, clearance) * 52));
 };
+
+const clampVehicleToStopLine = (vehicle: Vehicle) => {
+  const halfLength = vehicle.length / 2;
+  if (vehicle.direction === 'northbound') vehicle.position = CENTER_Y + INTERSECTION_SIZE / 2 + halfLength + STOP_LINE_MARGIN;
+  if (vehicle.direction === 'southbound') vehicle.position = CENTER_Y - INTERSECTION_SIZE / 2 - halfLength - STOP_LINE_MARGIN;
+  if (vehicle.direction === 'eastbound') vehicle.position = CENTER_X - INTERSECTION_SIZE / 2 - halfLength - STOP_LINE_MARGIN;
+  if (vehicle.direction === 'westbound') vehicle.position = CENTER_X + INTERSECTION_SIZE / 2 + halfLength + STOP_LINE_MARGIN;
+};
+
+const vehicleOccupiesIntersection = (vehicle: Vehicle) => {
+  const center = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
+  return Math.abs(vehicle.position - center) < INTERSECTION_SIZE / 2 + vehicle.length / 2;
+};
+
+const hasSafeSpawnGap = (candidate: Vehicle, vehicles: Vehicle[]) =>
+  vehicles.every((vehicle) => {
+    if (vehicle.direction !== candidate.direction) return true;
+    const minimumCenterGap = (vehicle.length + candidate.length) / 2 + MIN_BUMPER_GAP;
+    return Math.abs(vehicle.position - candidate.position) >= minimumCenterGap;
+  });
 
 const sortForLane = (vehicles: Vehicle[], direction: Direction) => {
   const list = vehicles.filter((vehicle) => vehicle.direction === direction);
@@ -200,6 +229,9 @@ export const createInitialState = (): GameState => ({
   dangerFlash: 0,
   delightFlash: 0,
   activeAxis: DEFAULT_CONTROL.activeAxis,
+  signalPhase: 'green',
+  pendingAxis: null,
+  signalTimer: 0,
   emergencyStop: DEFAULT_CONTROL.emergencyStop,
   boostTimer: 0,
   elapsed: 0,
@@ -223,6 +255,9 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     return {
       ...previous,
       activeAxis: input.activeAxis,
+      signalPhase: 'green',
+      pendingAxis: null,
+      signalTimer: 0,
       emergencyStop: input.emergencyStop,
       announcement: input.inputLabel,
       boostTimer: Math.max(0, previous.boostTimer - delta),
@@ -232,7 +267,10 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
   const next: GameState = {
     ...previous,
     elapsed: previous.elapsed + delta,
-    activeAxis: input.activeAxis,
+    activeAxis: previous.activeAxis,
+    signalPhase: previous.signalPhase,
+    pendingAxis: previous.pendingAxis,
+    signalTimer: Math.max(0, previous.signalTimer - delta),
     emergencyStop: input.emergencyStop,
     boostTimer: Math.max(0, previous.boostTimer - delta),
     announcement: input.inputLabel,
@@ -247,6 +285,34 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     pedestrians: previous.pedestrians.map((pedestrian) => ({ ...pedestrian, bob: pedestrian.bob + delta * (0.7 + pedestrian.pace * 0.02) })),
   };
 
+  if (input.emergencyStop) {
+    next.signalPhase = 'allRed';
+    next.pendingAxis = input.activeAxis;
+    next.signalTimer = 0;
+  } else if (previous.emergencyStop) {
+    next.signalPhase = 'allRed';
+    next.pendingAxis = input.activeAxis;
+    next.signalTimer = ALL_RED_DURATION;
+  } else if (next.signalPhase === 'green' && input.activeAxis !== next.activeAxis) {
+    next.signalPhase = 'yellow';
+    next.pendingAxis = input.activeAxis;
+    next.signalTimer = YELLOW_DURATION;
+  } else if (next.signalPhase === 'yellow') {
+    if (input.activeAxis === next.activeAxis) {
+      next.signalPhase = 'green';
+      next.pendingAxis = null;
+      next.signalTimer = 0;
+    } else {
+      next.pendingAxis = input.activeAxis;
+      if (next.signalTimer <= 0) {
+        next.signalPhase = 'allRed';
+        next.signalTimer = ALL_RED_DURATION;
+      }
+    }
+  } else if (next.signalPhase === 'allRed') {
+    next.pendingAxis = input.activeAxis;
+  }
+
   if (input.boost > 0.35) next.boostTimer = Math.min(4.5, next.boostTimer + delta * 1.4);
 
   const laneDirections: Direction[] = ['northbound', 'southbound', 'eastbound', 'westbound'];
@@ -254,13 +320,15 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     const laneVehicles = sortForLane(next.vehicles, direction);
     laneVehicles.forEach((vehicle, index) => {
       const previousSpeed = vehicle.speed;
+      const stopLineClearanceBeforeMove = distanceToStopLine(vehicle);
       const targetSpeed = desiredSpeed(vehicle, next);
       vehicle.speed += (targetSpeed - vehicle.speed) * Math.min(1, delta * LANE_ACCELERATION[direction] * 0.05);
 
       const leader = laneVehicles[index - 1];
       if (leader) {
+        const minimumCenterGap = Math.max(SAFE_DISTANCE * 0.72, (leader.length + vehicle.length) / 2 + MIN_BUMPER_GAP);
         const gap = Math.abs(leader.position - vehicle.position);
-        if (gap < SAFE_DISTANCE) vehicle.speed = Math.min(vehicle.speed, Math.max(0, leader.speed - (SAFE_DISTANCE - gap) * 0.7));
+        if (gap < minimumCenterGap) vehicle.speed = Math.min(vehicle.speed, Math.max(0, leader.speed - (minimumCenterGap - gap) * 0.9));
       }
 
       vehicle.acceleration = (vehicle.speed - previousSpeed) / Math.max(delta, 0.001);
@@ -269,6 +337,21 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
           ? Math.min(12, vehicle.waitingTime + delta)
           : Math.max(0, vehicle.waitingTime - delta * 2.5);
       updateVehiclePosition(vehicle, delta);
+
+      if (!axisHasGreen(vehicle, next) && !next.emergencyStop && stopLineClearanceBeforeMove >= -2 && distanceToStopLine(vehicle) < 0) {
+        clampVehicleToStopLine(vehicle);
+        vehicle.speed = 0;
+      }
+
+      if (leader) {
+        const minimumCenterGap = Math.max(SAFE_DISTANCE * 0.72, (leader.length + vehicle.length) / 2 + MIN_BUMPER_GAP);
+        const gap = Math.abs(leader.position - vehicle.position);
+        if (gap < minimumCenterGap) {
+          const increasing = direction === 'southbound' || direction === 'eastbound';
+          vehicle.position = leader.position + (increasing ? -minimumCenterGap : minimumCenterGap);
+          vehicle.speed = Math.min(vehicle.speed, leader.speed);
+        }
+      }
     });
   }
 
@@ -282,6 +365,17 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     next.bestStreak = Math.max(next.bestStreak, next.streak);
     next.carsCleared += cleared;
     next.delightFlash = Math.min(1, next.delightFlash + 0.26);
+  }
+
+  if (
+    !next.emergencyStop &&
+    next.signalPhase === 'allRed' &&
+    next.signalTimer <= 0 &&
+    !next.vehicles.some(vehicleOccupiesIntersection)
+  ) {
+    next.activeAxis = next.pendingAxis ?? input.activeAxis;
+    next.pendingAxis = null;
+    next.signalPhase = 'green';
   }
 
   const currentConfig = configForLevel(next.difficultyLevel);
@@ -321,12 +415,24 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
   }
 
   if (next.spawnTimerNS <= 0) {
-    next.vehicles.push(createVehicle(next.nextVehicleId++, Math.random() > 0.5 ? 'northbound' : 'southbound'));
-    next.spawnTimerNS = spawnIntervalForState(next, 'northSouth');
+    const candidate = createVehicle(next.nextVehicleId, Math.random() > 0.5 ? 'northbound' : 'southbound');
+    if (hasSafeSpawnGap(candidate, next.vehicles)) {
+      next.vehicles.push(candidate);
+      next.nextVehicleId += 1;
+      next.spawnTimerNS = spawnIntervalForState(next, 'northSouth');
+    } else {
+      next.spawnTimerNS = 0.45;
+    }
   }
   if (next.spawnTimerEW <= 0) {
-    next.vehicles.push(createVehicle(next.nextVehicleId++, Math.random() > 0.55 ? 'eastbound' : 'westbound'));
-    next.spawnTimerEW = spawnIntervalForState(next, 'eastWest');
+    const candidate = createVehicle(next.nextVehicleId, Math.random() > 0.55 ? 'eastbound' : 'westbound');
+    if (hasSafeSpawnGap(candidate, next.vehicles)) {
+      next.vehicles.push(candidate);
+      next.nextVehicleId += 1;
+      next.spawnTimerEW = spawnIntervalForState(next, 'eastWest');
+    } else {
+      next.spawnTimerEW = 0.45;
+    }
   }
 
   if (next.emergencyStop) {

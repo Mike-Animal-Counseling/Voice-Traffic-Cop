@@ -78,36 +78,18 @@ const pedestrianClass = (species: Pedestrian['species']) =>
 
 interface TrafficSignalProps {
   position: 'far-left' | 'far-right' | 'near-left' | 'near-right';
-  isGreen: boolean;
-  emergency: boolean;
+  state: 'red' | 'amber' | 'green';
 }
 
-const TrafficSignalGlow = ({ position, isGreen, emergency }: TrafficSignalProps) => {
-  const [displayState, setDisplayState] = useState<'red' | 'amber' | 'green'>(isGreen ? 'green' : 'red');
-  const previousGreen = useRef(isGreen);
-
-  useEffect(() => {
-    if (emergency) {
-      previousGreen.current = false;
-      setDisplayState('red');
-      return undefined;
-    }
-
-    if (previousGreen.current === isGreen) return undefined;
-    previousGreen.current = isGreen;
-    setDisplayState('amber');
-    const timeoutId = window.setTimeout(() => setDisplayState(isGreen ? 'green' : 'red'), isGreen ? 360 : 280);
-    return () => window.clearTimeout(timeoutId);
-  }, [emergency, isGreen]);
-
-  return (
-    <div className={`signal-cluster signal-cluster--${position}`} aria-hidden="true">
-      <span className={`signal-cluster__light signal-cluster__light--red ${displayState === 'red' ? 'is-lit' : ''}`} />
-      <span className={`signal-cluster__light signal-cluster__light--amber ${displayState === 'amber' ? 'is-lit' : ''}`} />
-      <span className={`signal-cluster__light signal-cluster__light--green ${displayState === 'green' ? 'is-lit' : ''}`} />
-    </div>
-  );
-};
+const TrafficSignal = ({ position, state }: TrafficSignalProps) => (
+  <div className={`signal-cluster signal-cluster--${position}`} aria-hidden="true">
+    <img className="signal-cluster__body" src="/images/signals/juniper-signal-v2.png" alt="" decoding="async" />
+    <span className={`signal-cluster__light signal-cluster__light--red ${state === 'red' ? 'is-lit' : ''}`} />
+    <span className={`signal-cluster__light signal-cluster__light--amber ${state === 'amber' ? 'is-lit' : ''}`} />
+    <span className={`signal-cluster__light signal-cluster__light--green ${state === 'green' ? 'is-lit' : ''}`} />
+    <span className="signal-cluster__reflection" />
+  </div>
+);
 
 interface HelpDialogProps {
   onClose: () => void;
@@ -356,8 +338,12 @@ function App() {
     );
   }
 
-  const activeNS = game.activeAxis === 'northSouth' && !game.emergencyStop;
-  const activeEW = game.activeAxis === 'eastWest' && !game.emergencyStop;
+  const activeNS = game.activeAxis === 'northSouth' && game.signalPhase === 'green' && !game.emergencyStop;
+  const activeEW = game.activeAxis === 'eastWest' && game.signalPhase === 'green' && !game.emergencyStop;
+  const signalStateForAxis = (axis: Axis): TrafficSignalProps['state'] => {
+    if (game.emergencyStop || game.signalPhase === 'allRed' || game.activeAxis !== axis) return 'red';
+    return game.signalPhase === 'yellow' ? 'amber' : 'green';
+  };
   const trafficMood =
     game.congestion < 28 ? 'Gliding' : game.congestion < 58 ? 'Building' : game.congestion < 82 ? 'Tense' : 'Critical';
   const levelName =
@@ -376,25 +362,31 @@ function App() {
   const isPlaying = game.phase === 'running' || game.phase === 'paused';
   const pipPose: PipPose = game.emergencyStop
     ? 'stop'
-    : game.congestion >= 70
-      ? 'jam'
-      : game.delightFlash > 0.18
-        ? 'cheer'
-        : game.boostTimer > 0.5
-          ? 'wave'
-          : pipIdlePose;
+    : game.signalPhase !== 'green'
+      ? 'stop'
+      : game.congestion >= 70
+        ? 'jam'
+        : game.delightFlash > 0.18
+          ? 'cheer'
+          : game.boostTimer > 0.5
+            ? 'wave'
+            : pipIdlePose;
   const pipMessage = game.emergencyStop
     ? 'All paws — stop!'
-    : game.congestion >= 70
-      ? 'Queue building — hold steady!'
-      : game.delightFlash > 0.18
-        ? 'Clear roads — lovely work!'
-        : currentInput;
+    : game.signalPhase === 'yellow'
+      ? 'Easy now — lights changing.'
+      : game.signalPhase === 'allRed'
+        ? 'Clearing the junction…'
+        : game.congestion >= 70
+          ? 'Queue building — hold steady!'
+          : game.delightFlash > 0.18
+            ? 'Clear roads — lovely work!'
+            : currentInput;
 
   const controlButtonProps = (axis: Axis) => ({
-    className: `lane-button ${game.activeAxis === axis && !game.emergencyStop ? 'lane-button--active' : ''}`,
+    className: `lane-button ${game.activeAxis === axis && game.signalPhase === 'green' && !game.emergencyStop ? 'lane-button--active' : ''}`,
     onClick: () => manual.chooseAxis(axis),
-    'aria-pressed': game.activeAxis === axis && !game.emergencyStop,
+    'aria-pressed': game.activeAxis === axis && game.signalPhase === 'green' && !game.emergencyStop,
   });
 
   return (
@@ -459,8 +451,10 @@ function App() {
             </header>
 
             <div className="objective-strip">
-              <span className="objective-strip__label">Open lane</span>
-              <strong>{axisLabel(game.activeAxis)}</strong>
+              <span className="objective-strip__label">
+                {game.signalPhase === 'green' && !game.emergencyStop ? 'Open lane' : game.signalPhase === 'yellow' ? 'Changing lights' : 'Safety clearance'}
+              </span>
+              <strong>{game.signalPhase === 'green' && !game.emergencyStop ? axisLabel(game.activeAxis) : 'All lanes holding'}</strong>
               <span className="objective-strip__queue">{currentQueue} vehicles in route</span>
             </div>
 
@@ -506,14 +500,14 @@ function App() {
 
               <div className="intersection-center">
                 <div className="roundabout-bloom" />
-                <div className={`voice-wave voice-wave--${game.activeAxis} ${game.emergencyStop ? 'voice-wave--stop' : ''} ${game.boostTimer > 0.5 ? 'voice-wave--boost' : ''}`} aria-hidden="true">
+                <div className={`voice-wave voice-wave--${game.activeAxis} ${game.emergencyStop || game.signalPhase === 'allRed' ? 'voice-wave--stop' : ''} ${game.boostTimer > 0.5 ? 'voice-wave--boost' : ''}`} aria-hidden="true">
                   <i />
                   <i />
                   <i />
                 </div>
                 <div className="pip">
                   <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{pipMessage}</div>
-                  <div className={`pip-avatar pip-avatar--${game.activeAxis} ${game.congestion > 70 ? 'pip-avatar--urgent' : ''} ${game.emergencyStop ? 'pip-avatar--stop' : ''}`}>
+                  <div className={`pip-avatar pip-avatar--${game.activeAxis} ${game.congestion > 70 ? 'pip-avatar--urgent' : ''} ${game.emergencyStop || game.signalPhase !== 'green' ? 'pip-avatar--stop' : ''}`}>
                     <span className="pip-avatar__glow" />
                     <img
                       key={pipPose}
@@ -526,15 +520,15 @@ function App() {
                 </div>
               </div>
 
-              <TrafficSignalGlow position="far-left" isGreen={activeNS} emergency={game.emergencyStop} />
-              <TrafficSignalGlow position="far-right" isGreen={activeEW} emergency={game.emergencyStop} />
-              <TrafficSignalGlow position="near-left" isGreen={activeEW} emergency={game.emergencyStop} />
-              <TrafficSignalGlow position="near-right" isGreen={activeNS} emergency={game.emergencyStop} />
+              <TrafficSignal position="far-left" state={signalStateForAxis('northSouth')} />
+              <TrafficSignal position="far-right" state={signalStateForAxis('eastWest')} />
+              <TrafficSignal position="near-left" state={signalStateForAxis('eastWest')} />
+              <TrafficSignal position="near-right" state={signalStateForAxis('northSouth')} />
 
               {game.vehicles.map((vehicle) => {
                 const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
                 const braking = vehicle.acceleration < -18;
-                const boosted = vehicle.axis === game.activeAxis && game.boostTimer > 0.5 && vehicle.speed > 25;
+                const boosted = vehicle.axis === game.activeAxis && game.signalPhase === 'green' && game.boostTimer > 0.5 && vehicle.speed > 25;
                 const mood = game.congestion > 70 ? '!' : vehicle.id % 2 === 0 ? '…' : '♪';
 
                 return (
