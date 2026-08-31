@@ -77,16 +77,12 @@ const pedestrianClass = (species: Pedestrian['species']) =>
   })[species];
 
 interface TrafficSignalProps {
-  position: 'top' | 'right' | 'bottom' | 'left';
+  position: 'far-left' | 'far-right' | 'near-left' | 'near-right';
   isGreen: boolean;
   emergency: boolean;
 }
 
-const TrafficSignal = ({ position, isGreen, emergency }: TrafficSignalProps) => (
-  <TrafficSignalWithTransition position={position} isGreen={isGreen} emergency={emergency} />
-);
-
-const TrafficSignalWithTransition = ({ position, isGreen, emergency }: TrafficSignalProps) => {
+const TrafficSignalGlow = ({ position, isGreen, emergency }: TrafficSignalProps) => {
   const [displayState, setDisplayState] = useState<'red' | 'amber' | 'green'>(isGreen ? 'green' : 'red');
   const previousGreen = useRef(isGreen);
 
@@ -106,7 +102,6 @@ const TrafficSignalWithTransition = ({ position, isGreen, emergency }: TrafficSi
 
   return (
     <div className={`signal-cluster signal-cluster--${position}`} aria-hidden="true">
-      <img className="signal-cluster__body" src="/images/traffic-signal-3d.png" alt="" decoding="async" />
       <span className={`signal-cluster__light signal-cluster__light--red ${displayState === 'red' ? 'is-lit' : ''}`} />
       <span className={`signal-cluster__light signal-cluster__light--amber ${displayState === 'amber' ? 'is-lit' : ''}`} />
       <span className={`signal-cluster__light signal-cluster__light--green ${displayState === 'green' ? 'is-lit' : ''}`} />
@@ -531,10 +526,10 @@ function App() {
                 </div>
               </div>
 
-              <TrafficSignal position="top" isGreen={activeNS} emergency={game.emergencyStop} />
-              <TrafficSignal position="right" isGreen={activeEW} emergency={game.emergencyStop} />
-              <TrafficSignal position="bottom" isGreen={activeNS} emergency={game.emergencyStop} />
-              <TrafficSignal position="left" isGreen={activeEW} emergency={game.emergencyStop} />
+              <TrafficSignalGlow position="far-left" isGreen={activeNS} emergency={game.emergencyStop} />
+              <TrafficSignalGlow position="far-right" isGreen={activeEW} emergency={game.emergencyStop} />
+              <TrafficSignalGlow position="near-left" isGreen={activeEW} emergency={game.emergencyStop} />
+              <TrafficSignalGlow position="near-right" isGreen={activeNS} emergency={game.emergencyStop} />
 
               {game.vehicles.map((vehicle) => {
                 const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
