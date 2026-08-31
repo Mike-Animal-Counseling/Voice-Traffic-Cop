@@ -1,11 +1,29 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { CENTER_X, CENTER_Y, WORLD_HEIGHT, WORLD_WIDTH } from './game/constants';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from './game/constants';
 import { createInitialState, startGame, updateGame } from './game/logic';
+import { useManualControls } from './hooks/useManualControls';
 import { useMicrophoneControls } from './hooks/useMicrophoneControls';
 import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
 
-const axisLabel = (axis: Axis) => (axis === 'northSouth' ? 'North-South' : 'East-West');
+type ControlMode = 'voice' | 'manual';
+
+const axisLabel = (axis: Axis) => (axis === 'northSouth' ? 'North–South' : 'East–West');
+const axisShortLabel = (axis: Axis) => (axis === 'northSouth' ? 'N · S' : 'E · W');
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.floor(seconds % 60);
+  return `${minutes}:${remainder.toString().padStart(2, '0')}`;
+};
+
+const getStoredBest = () => {
+  try {
+    return Number(window.localStorage.getItem('voice-traffic-cop:best-score')) || 0;
+  } catch {
+    return 0;
+  }
+};
 
 const vehicleStyle = (vehicle: Vehicle) => {
   const isVertical = vehicle.axis === 'northSouth';
@@ -52,17 +70,30 @@ const pedestrianClass = (species: Pedestrian['species']) =>
 function App() {
   const [game, setGame] = useState<GameState>(createInitialState);
   const [stageScale, setStageScale] = useState(1);
-  const { snapshot, laneControl, requestPermission, stopMonitoring } = useMicrophoneControls();
+  const [controlMode, setControlMode] = useState<ControlMode>('voice');
+  const [highScore, setHighScore] = useState(getStoredBest);
+  const [showHelp, setShowHelp] = useState(false);
+  const {
+    snapshot,
+    laneControl: microphoneControl,
+    requestPermission,
+    stopMonitoring,
+    errorMessage,
+  } = useMicrophoneControls();
+  const manual = useManualControls();
   const lastFrameRef = useRef<number | null>(null);
+  const baselineBestRef = useRef(highScore);
+
+  const laneControl = controlMode === 'voice' ? microphoneControl : manual.laneControl;
 
   useEffect(() => {
     const updateScale = () => {
-      const horizontalPadding = 24;
-      const verticalPadding = 24;
+      const horizontalPadding = 20;
+      const verticalPadding = 20;
       const availableWidth = window.innerWidth - horizontalPadding;
       const availableHeight = window.innerHeight - verticalPadding;
       const nextScale = Math.min(availableWidth / WORLD_WIDTH, availableHeight / WORLD_HEIGHT);
-      setStageScale(Math.max(0.42, nextScale));
+      setStageScale(Math.max(0.24, nextScale));
     };
 
     updateScale();
@@ -84,29 +115,119 @@ function App() {
     return () => cancelAnimationFrame(animationFrame);
   }, [laneControl]);
 
+  useEffect(() => {
+    if (game.score <= highScore) return;
+    setHighScore(game.score);
+    try {
+      window.localStorage.setItem('voice-traffic-cop:best-score', String(game.score));
+    } catch {
+      // The game still works when storage is unavailable.
+    }
+  }, [game.score, highScore]);
+
+  const togglePause = useCallback(() => {
+    setGame((current) => {
+      if (current.phase === 'running') {
+        return { ...current, phase: 'paused', announcement: 'Shift paused' };
+      }
+      if (current.phase === 'paused') {
+        lastFrameRef.current = performance.now();
+        return { ...current, phase: 'running', announcement: 'Back on duty' };
+      }
+      return current;
+    });
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'KeyP' || event.code === 'Escape') {
+        if (game.phase === 'running' || game.phase === 'paused') {
+          event.preventDefault();
+          togglePause();
+        }
+      }
+      if (event.code === 'KeyH' && !event.repeat) setShowHelp((current) => !current);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        setGame((current) =>
+          current.phase === 'running'
+            ? { ...current, phase: 'paused', announcement: 'Shift paused while you were away' }
+            : current,
+        );
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [game.phase, togglePause]);
+
   useEffect(() => () => stopMonitoring(), [stopMonitoring]);
 
-  const startRun = async () => {
-    if (snapshot.permission !== 'granted') await requestPermission();
+  const startRun = async (mode: ControlMode) => {
+    let selectedMode = mode;
+    if (mode === 'voice') {
+      const permissionGranted = await requestPermission();
+      if (!permissionGranted) selectedMode = 'manual';
+    }
+    setControlMode(selectedMode);
+    baselineBestRef.current = highScore;
+    lastFrameRef.current = performance.now();
     setGame(startGame());
   };
 
-  const restart = () => setGame(startGame());
+  const switchControlMode = async (mode: ControlMode) => {
+    if (mode === 'voice' && snapshot.permission !== 'granted') {
+      const permissionGranted = await requestPermission();
+      if (!permissionGranted) return;
+    }
+    setControlMode(mode);
+  };
+
+  const restart = () => {
+    baselineBestRef.current = highScore;
+    lastFrameRef.current = performance.now();
+    setGame(startGame());
+  };
+
+  const returnToTitle = () => setGame(createInitialState());
 
   const activeNS = game.activeAxis === 'northSouth' && !game.emergencyStop;
   const activeEW = game.activeAxis === 'eastWest' && !game.emergencyStop;
   const trafficMood =
-    game.congestion < 28 ? 'Calm' : game.congestion < 58 ? 'Busy' : game.congestion < 82 ? 'Tense' : 'Tangled';
+    game.congestion < 28 ? 'Gliding' : game.congestion < 58 ? 'Building' : game.congestion < 82 ? 'Tense' : 'Critical';
   const levelName =
     game.difficultyLevel === 1 ? 'Rookie Patrol' : game.difficultyLevel === 2 ? 'Cadet Crossing' : 'Captain Rush';
   const progressToNext = game.difficultyLevel >= 3 ? 100 : Math.min(100, (game.score / game.levelGoal) * 100);
+  const congestionLevel = Math.min(MAX_CONGESTION, Math.max(0, game.congestion));
+  const queueNS = game.vehicles.filter((vehicle) => vehicle.axis === 'northSouth').length;
+  const queueEW = game.vehicles.filter((vehicle) => vehicle.axis === 'eastWest').length;
+  const currentQueue = game.activeAxis === 'northSouth' ? queueNS : queueEW;
+  const currentInput =
+    controlMode === 'voice'
+      ? snapshot.command === 'none'
+        ? 'Listening'
+        : snapshot.transcript
+      : manual.laneControl.inputLabel;
+  const isPlaying = game.phase === 'running' || game.phase === 'paused';
+
+  const controlButtonProps = (axis: Axis) => ({
+    className: `lane-button ${game.activeAxis === axis && !game.emergencyStop ? 'lane-button--active' : ''}`,
+    onClick: () => manual.chooseAxis(axis),
+    'aria-pressed': game.activeAxis === axis && !game.emergencyStop,
+  });
 
   return (
-    <div className="app-shell">
+    <main className="app-shell">
       <div className="scene">
         <div className="scene-frame">
           <div
-            className={`scene-stage ${game.phase === 'running' ? 'scene--live' : ''} ${game.dangerFlash > 0.1 ? 'scene--danger' : ''}`}
+            className={`scene-stage ${game.phase === 'running' ? 'scene--live' : ''} ${game.phase === 'paused' ? 'scene--paused' : ''} ${game.dangerFlash > 0.1 ? 'scene--danger' : ''}`}
             style={
               {
                 width: `${WORLD_WIDTH}px`,
@@ -119,227 +240,369 @@ function App() {
             }
           >
             <div className="sun-glow" />
+            <div className="cloud cloud--one" />
+            <div className="cloud cloud--two" />
             <div className="skyline skyline--far" />
             <div className="skyline skyline--mid" />
 
             <header className="hud">
               <div className="brand-chip">
-                <span className="brand-chip__eyebrow">Juniper Junction</span>
-                <strong>Voice Traffic Cop</strong>
+                <span className="brand-mark" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span>
+                  <span className="brand-chip__eyebrow">Juniper Junction</span>
+                  <strong>Voice Traffic Cop</strong>
+                </span>
               </div>
-              <div className="status-panel">
-                <div className="metric">
+
+              <div className="status-panel" aria-label="Shift stats">
+                <div className="metric metric--score">
                   <span className="metric__label">Score</span>
-                  <strong>{game.score}</strong>
+                  <strong>{game.score.toLocaleString()}</strong>
                 </div>
                 <div className="metric">
                   <span className="metric__label">Streak</span>
-                  <strong>{game.streak}</strong>
+                  <strong>×{game.streak}</strong>
                 </div>
                 <div className="metric">
                   <span className="metric__label">Level</span>
                   <strong>{game.difficultyLevel}</strong>
                 </div>
                 <div className="metric">
-                  <span className="metric__label">Mood</span>
-                  <strong>{trafficMood}</strong>
+                  <span className="metric__label">Best</span>
+                  <strong>{highScore.toLocaleString()}</strong>
                 </div>
+                {isPlaying && (
+                  <button className="icon-button" type="button" onClick={togglePause} aria-label={game.phase === 'paused' ? 'Resume game' : 'Pause game'}>
+                    {game.phase === 'paused' ? '▶' : 'Ⅱ'}
+                  </button>
+                )}
               </div>
             </header>
 
+            <div className="objective-strip">
+              <span className="objective-strip__label">Open lane</span>
+              <strong>{axisLabel(game.activeAxis)}</strong>
+              <span className="objective-strip__queue">{currentQueue} vehicles in route</span>
+            </div>
+
             <div className="street-stage">
-          <div className="city-block city-block--top-left">
-            <div className="building cluster-a">
-              <span className="awning" />
-              <span className="window window--round" />
-              <span className="window window--tall" />
-            </div>
-            <div className="tiny-lane tiny-lane--left" />
-          </div>
-          <div className="city-block city-block--top-right">
-            <div className="building cluster-b">
-              <span className="sign sign--tram">Tram</span>
-              <span className="window window--wide" />
-            </div>
-          </div>
-          <div className="city-block city-block--bottom-left">
-            <div className="building cluster-c">
-              <span className="sign sign--tea">Berry Tea</span>
-              <span className="planter" />
-            </div>
-          </div>
-          <div className="city-block city-block--bottom-right">
-            <div className="building cluster-d">
-              <span className="sign sign--mail">Snail Mail</span>
-              <span className="bench" />
-            </div>
-          </div>
-
-          <div className={`road road--vertical ${activeNS ? 'road--active' : ''}`} />
-          <div className={`road road--horizontal ${activeEW ? 'road--active' : ''}`} />
-          <div className={`crosswalk crosswalk--top ${activeEW ? 'crosswalk--go' : ''}`} />
-          <div className={`crosswalk crosswalk--bottom ${activeEW ? 'crosswalk--go' : ''}`} />
-          <div className={`crosswalk crosswalk--left ${activeNS ? 'crosswalk--go' : ''}`} />
-          <div className={`crosswalk crosswalk--right ${activeNS ? 'crosswalk--go' : ''}`} />
-
-          <div className="intersection-center">
-            <div className="roundabout-bloom" />
-            <div className="pip">
-              <div className={`speech-ribbon ${snapshot.command !== 'none' ? 'speech-ribbon--live' : ''}`}>
-                {snapshot.transcript}
-              </div>
-              <div className={`pip-tail ${game.congestion > 70 ? 'pip-tail--poof' : ''}`} />
-              <div className="pip-body">
-                <div className="pip-cap" />
-                <div className="pip-face">
-                  <span className="eye" />
-                  <span className="eye" />
+              <div className="city-block city-block--top-left">
+                <div className="building cluster-a">
+                  <span className="awning" />
+                  <span className="window window--round" />
+                  <span className="window window--tall" />
                 </div>
-                <div className={`pip-baton ${activeNS ? 'pip-baton--ns' : 'pip-baton--ew'}`} />
+                <div className="tiny-lane tiny-lane--left" />
               </div>
-            </div>
-          </div>
-
-          <div className="signal-cluster signal-cluster--top">
-            <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-          </div>
-          <div className="signal-cluster signal-cluster--right">
-            <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-          </div>
-          <div className="signal-cluster signal-cluster--bottom">
-            <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-          </div>
-          <div className="signal-cluster signal-cluster--left">
-            <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-          </div>
-
-          {game.vehicles.map((vehicle) => (
-            <div
-              className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''}`}
-              style={vehicleStyle(vehicle)}
-              key={vehicle.id}
-            >
-              <span className="vehicle__body" />
-              <span className="vehicle__roof" />
-              <span className="vehicle__window" />
-              <span className="vehicle__wheel vehicle__wheel--front" />
-              <span className="vehicle__wheel vehicle__wheel--rear" />
-            </div>
-          ))}
-
-          {game.pedestrians.map((pedestrian) => (
-            <div
-              key={pedestrian.id}
-              className={`pedestrian pedestrian--${pedestrian.side}`}
-              style={{
-                left: `${(pedestrian.x / WORLD_WIDTH) * 100}%`,
-                transform: `translateY(${Math.sin(pedestrian.bob) * 4}px)`,
-              }}
-            >
-              <span className="pedestrian__shadow" />
-              <span className={`pedestrian__body pedestrian__body--${pedestrianClass(pedestrian.species)}`} />
-            </div>
-          ))}
-            </div>
-
-            <aside className="mic-panel">
-              <div className="mic-panel__top">
-                <span className={`permission-dot permission-dot--${snapshot.permission}`} />
-                <strong>Mic</strong>
-                <span className="mic-panel__command">{snapshot.transcript}</span>
-              </div>
-              <div className="meter">
-                <div className="meter__fill" style={{ width: `${Math.max(8, snapshot.volume * 100)}%` }} />
-              </div>
-              <div className="mic-stats">
-                <div className="mic-stat">
-                  <span className="mic-stat__label">Pitch</span>
-                  <strong>{snapshot.smoothedPitch ? `${Math.round(snapshot.smoothedPitch)} Hz` : 'Listening'}</strong>
-                </div>
-                <div className="mic-stat">
-                  <span className="mic-stat__label">Light</span>
-                  <strong>{game.emergencyStop ? 'All stop' : axisLabel(game.activeAxis)}</strong>
-                </div>
-                <div className="mic-stat">
-                  <span className="mic-stat__label">Level</span>
-                  <strong>{levelName}</strong>
-                </div>
-                <div className="mic-stat">
-                  <span className="mic-stat__label">Next</span>
-                  <strong>{game.difficultyLevel >= 3 ? 'Maxed' : game.levelGoal}</strong>
+              <div className="city-block city-block--top-right">
+                <div className="building cluster-b">
+                  <span className="sign sign--tram">Tram</span>
+                  <span className="window window--wide" />
                 </div>
               </div>
-              <div className="meter meter--level">
-                <div className="meter__fill meter__fill--level" style={{ width: `${Math.max(8, progressToNext)}%` }} />
+              <div className="city-block city-block--bottom-left">
+                <div className="building cluster-c">
+                  <span className="sign sign--tea">Berry Tea</span>
+                  <span className="planter" />
+                </div>
               </div>
-              <div className="hint-pill">Voice: Low = North-South, High = East-West, Loud = Stop, Hold = Boost</div>
+              <div className="city-block city-block--bottom-right">
+                <div className="building cluster-d">
+                  <span className="sign sign--mail">Snail Mail</span>
+                  <span className="bench" />
+                </div>
+              </div>
+
+              <div className={`road road--vertical ${activeNS ? 'road--active' : ''}`} />
+              <div className={`road road--horizontal ${activeEW ? 'road--active' : ''}`} />
+              <div className={`crosswalk crosswalk--top ${activeEW ? 'crosswalk--go' : ''}`} />
+              <div className={`crosswalk crosswalk--bottom ${activeEW ? 'crosswalk--go' : ''}`} />
+              <div className={`crosswalk crosswalk--left ${activeNS ? 'crosswalk--go' : ''}`} />
+              <div className={`crosswalk crosswalk--right ${activeNS ? 'crosswalk--go' : ''}`} />
+
+              <div className="intersection-center">
+                <div className="roundabout-bloom" />
+                <div className={`voice-wave voice-wave--${game.activeAxis} ${game.emergencyStop ? 'voice-wave--stop' : ''}`} aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+                <div className="pip">
+                  <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{currentInput}</div>
+                  <div className={`pip-tail ${game.congestion > 70 ? 'pip-tail--poof' : ''}`} />
+                  <div className="pip-body">
+                    <div className="pip-cap" />
+                    <div className="pip-face">
+                      <span className="eye" />
+                      <span className="eye" />
+                    </div>
+                    <div className={`pip-baton ${activeNS ? 'pip-baton--ns' : 'pip-baton--ew'}`} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="signal-cluster signal-cluster--top">
+                <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
+              </div>
+              <div className="signal-cluster signal-cluster--right">
+                <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
+              </div>
+              <div className="signal-cluster signal-cluster--bottom">
+                <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
+              </div>
+              <div className="signal-cluster signal-cluster--left">
+                <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
+              </div>
+
+              {game.vehicles.map((vehicle) => (
+                <div
+                  className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''}`}
+                  style={vehicleStyle(vehicle)}
+                  key={vehicle.id}
+                >
+                  <span className="vehicle__body" />
+                  <span className="vehicle__roof" />
+                  <span className="vehicle__window" />
+                  <span className="vehicle__wheel vehicle__wheel--front" />
+                  <span className="vehicle__wheel vehicle__wheel--rear" />
+                </div>
+              ))}
+
+              {game.pedestrians.map((pedestrian) => (
+                <div
+                  key={pedestrian.id}
+                  className={`pedestrian pedestrian--${pedestrian.side}`}
+                  style={{
+                    left: `${(pedestrian.x / WORLD_WIDTH) * 100}%`,
+                    transform: `translateY(${Math.sin(pedestrian.bob) * 4}px)`,
+                  }}
+                >
+                  <span className="pedestrian__shadow" />
+                  <span className={`pedestrian__body pedestrian__body--${pedestrianClass(pedestrian.species)}`} />
+                </div>
+              ))}
+            </div>
+
+            <aside className="control-dock" aria-label="Traffic controls">
+              <div className="control-dock__header">
+                <div>
+                  <span className="panel-kicker">Controller</span>
+                  <strong>{controlMode === 'voice' ? 'Voice pilot' : 'Hands-on patrol'}</strong>
+                </div>
+                <div className="mode-switch">
+                  <button type="button" className={controlMode === 'voice' ? 'is-active' : ''} onClick={() => void switchControlMode('voice')} aria-pressed={controlMode === 'voice'}>
+                    Voice
+                  </button>
+                  <button type="button" className={controlMode === 'manual' ? 'is-active' : ''} onClick={() => void switchControlMode('manual')} aria-pressed={controlMode === 'manual'}>
+                    Keys
+                  </button>
+                </div>
+              </div>
+
+              {controlMode === 'voice' ? (
+                <>
+                  <div className="listening-row">
+                    <span className={`permission-dot permission-dot--${snapshot.permission}`} />
+                    <span>{snapshot.permission === 'granted' ? 'Live input' : 'Microphone idle'}</span>
+                    <strong>{snapshot.smoothedPitch ? `${Math.round(snapshot.smoothedPitch)} Hz` : '—'}</strong>
+                  </div>
+                  <div className="audio-visualizer" aria-label={`Microphone level ${Math.round(snapshot.volume * 100)} percent`}>
+                    {new Array(12).fill(null).map((_, index) => (
+                      <i
+                        key={index}
+                        style={{ '--bar-level': Math.max(0.12, Math.min(1, snapshot.volume * 2.8 - index * 0.045)) } as React.CSSProperties}
+                      />
+                    ))}
+                  </div>
+                  {snapshot.permission !== 'granted' && (
+                    <button className="dock-action" type="button" onClick={() => void switchControlMode('voice')}>
+                      Enable microphone
+                    </button>
+                  )}
+                  {errorMessage && <p className="control-error">{errorMessage}</p>}
+                  <p className="control-hint">Low hum = N–S · High hum = E–W · Loud = Stop</p>
+                </>
+              ) : (
+                <>
+                  <div className="lane-controls">
+                    <button type="button" {...controlButtonProps('northSouth')}>
+                      <span>↑↓</span>
+                      <strong>N–S</strong>
+                      <small>W / S / 1</small>
+                    </button>
+                    <button type="button" {...controlButtonProps('eastWest')}>
+                      <span>↔</span>
+                      <strong>E–W</strong>
+                      <small>A / D / 2</small>
+                    </button>
+                    <button type="button" className={`lane-button lane-button--stop ${game.emergencyStop ? 'lane-button--active' : ''}`} onClick={manual.triggerStop}>
+                      <span>■</span>
+                      <strong>Stop</strong>
+                      <small>Space</small>
+                    </button>
+                    <button
+                      type="button"
+                      className={`lane-button lane-button--boost ${manual.boosting ? 'lane-button--active' : ''}`}
+                      onPointerDown={() => manual.setBoost(true)}
+                      onPointerUp={() => manual.setBoost(false)}
+                      onPointerLeave={() => manual.setBoost(false)}
+                      onPointerCancel={() => manual.setBoost(false)}
+                    >
+                      <span>✦</span>
+                      <strong>Boost</strong>
+                      <small>Hold Shift</small>
+                    </button>
+                  </div>
+                </>
+              )}
             </aside>
 
-            <div className="announcement-bar">{game.announcement}</div>
+            <aside className="shift-panel" aria-label="Traffic health">
+              <div className="shift-panel__top">
+                <div>
+                  <span className="panel-kicker">Traffic mood</span>
+                  <strong>{trafficMood}</strong>
+                </div>
+                <span className={`mood-orb mood-orb--${trafficMood.toLowerCase()}`} />
+              </div>
+              <div
+                className="congestion-meter"
+                role="progressbar"
+                aria-label="Congestion"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(congestionLevel)}
+              >
+                <span style={{ width: `${congestionLevel}%` }} />
+              </div>
+              <div className="shift-stats">
+                <span><b>{game.carsCleared}</b> cleared</span>
+                <span><b>{formatTime(game.elapsed)}</b> shift</span>
+                <span><b>{axisShortLabel(game.activeAxis)}</b> open</span>
+              </div>
+              <div className="level-progress">
+                <span style={{ width: `${Math.max(4, progressToNext)}%` }} />
+              </div>
+              <small>{game.difficultyLevel >= 3 ? 'Maximum traffic level' : `${game.levelGoal - game.score} points to next patrol`}</small>
+            </aside>
+
+            <div className="announcement-bar" role="status" aria-live="polite">
+              <span aria-hidden="true">✦</span>
+              {game.announcement}
+            </div>
 
             {game.phase === 'title' && (
-              <div className="overlay">
-                <div className="card card--hero">
-                  <div className="card__body">
-                    <p className="card__eyebrow">Juniper Junction Duty</p>
-                    <h1>Voice Traffic Cop</h1>
-                    <p>A calm little voice-controlled traffic game. Help Pip Bristle keep the intersection flowing.</p>
-                    <div className="quickstart-list">
-                      <div>
-                        <strong>Low hum</strong>
-                        <span>Switch to North-South green.</span>
-                      </div>
-                      <div>
-                        <strong>High hum</strong>
-                        <span>Switch to East-West green.</span>
-                      </div>
-                      <div>
-                        <strong>Loud burst</strong>
-                        <span>Emergency stop. Hold a steady tone for a small boost.</span>
-                      </div>
+              <div className="overlay overlay--title">
+                <div className="intro-card">
+                  <section className="intro-copy">
+                    <div className="intro-brand">
+                      <span className="intro-brand__mark" aria-hidden="true">〽</span>
+                      Juniper Junction Dispatch
                     </div>
-                    <p className="start-tip">You only need a short hum to switch. The game starts easy and speeds up later.</p>
-                  </div>
-                  <div className="card__footer">
-                    <button className="primary-button" onClick={startRun}>
-                      {snapshot.permission === 'granted' ? 'Start Patrol' : 'Enable Mic & Start'}
-                    </button>
-                    <p className="card__microcopy">Watch the mic panel on the left if you want to see what Pip is hearing.</p>
-                  </div>
+                    <p className="card__eyebrow">A tiny city that listens</p>
+                    <h1>Voice<br />Traffic Cop</h1>
+                    <p className="intro-lead">Conduct rush hour with a hum. Guide Pip, clear the queues, and keep the coziest crossing in town moving.</p>
+
+                    <div className="feature-pills">
+                      <span>Voice controlled</span>
+                      <span>Audio stays local</span>
+                      <span>Keyboard friendly</span>
+                    </div>
+
+                    <div className="start-actions">
+                      <button className="primary-button primary-button--voice" type="button" onClick={() => void startRun('voice')}>
+                        <span className="button-icon" aria-hidden="true">●</span>
+                        <span><small>Recommended</small>Play with voice</span>
+                      </button>
+                      <button className="secondary-button" type="button" onClick={() => void startRun('manual')}>
+                        Play with keys
+                      </button>
+                    </div>
+
+                    <div className="intro-footer">
+                      <button type="button" className="text-button" onClick={() => setShowHelp(true)}>How to play <kbd>H</kbd></button>
+                      <span>Personal best <strong>{highScore.toLocaleString()}</strong></span>
+                    </div>
+                  </section>
+
+                  <section className="intro-art" aria-label="Pip directing traffic in Juniper Junction">
+                    <img src="/images/voice-traffic-cop-hero.png" alt="Pip the hedgehog directing colorful cars with glowing sound waves" />
+                    <div className="art-vignette" />
+                    <div className="art-caption">
+                      <span className="live-dot" />
+                      <span><small>Next shift</small><strong>{levelName}</strong></span>
+                    </div>
+                    <div className="art-callout art-callout--low"><b>Low hum</b><span>North–South</span></div>
+                    <div className="art-callout art-callout--high"><b>High hum</b><span>East–West</span></div>
+                  </section>
+                </div>
+              </div>
+            )}
+
+            {game.phase === 'paused' && (
+              <div className="overlay overlay--pause">
+                <div className="pause-card">
+                  <span className="pause-card__icon" aria-hidden="true">Ⅱ</span>
+                  <p className="card__eyebrow">Pip is holding the crossing</p>
+                  <h2>Shift paused</h2>
+                  <p>Your score and traffic are safe. Take a breath.</p>
+                  <button className="primary-button" type="button" onClick={togglePause}>Resume patrol</button>
+                  <button className="text-button" type="button" onClick={returnToTitle}>Return to title</button>
                 </div>
               </div>
             )}
 
             {game.phase === 'gameOver' && (
               <div className="overlay overlay--gameover">
-                <div className="card card--gameover">
-                  <p className="card__eyebrow">Intersection Report</p>
-                  <h2>Juniper Junction Jammed Up</h2>
-                  <p>Pip did their best, but the crossing got too tangled. You reached level {game.difficultyLevel} before the jam.</p>
-                  <div className="gameover-stats">
-                    <div>
-                      <span>Final Score</span>
-                      <strong>{game.score}</strong>
-                    </div>
-                    <div>
-                      <span>Top Level</span>
-                      <strong>{levelName}</strong>
-                    </div>
-                    <div>
-                      <span>Best Streak</span>
-                      <strong>{game.bestStreak}</strong>
-                    </div>
+                <div className="results-card">
+                  <div className="results-card__header">
+                    <span className="results-badge">Shift report</span>
+                    <p>{game.score > baselineBestRef.current ? 'New personal best' : 'Juniper Junction tangled up'}</p>
+                    <h2>{game.score.toLocaleString()}</h2>
+                    <span>final score</span>
                   </div>
-                  <button className="primary-button" onClick={restart}>
-                    Restart Shift
-                  </button>
+                  <div className="gameover-stats">
+                    <div><span>Cars cleared</span><strong>{game.carsCleared}</strong></div>
+                    <div><span>Best streak</span><strong>×{game.bestStreak}</strong></div>
+                    <div><span>Patrol reached</span><strong>{game.difficultyLevel}</strong></div>
+                    <div><span>Time on duty</span><strong>{formatTime(game.elapsed)}</strong></div>
+                  </div>
+                  <div className="results-actions">
+                    <button className="primary-button" type="button" onClick={restart}>Try another shift</button>
+                    <button className="secondary-button" type="button" onClick={returnToTitle}>Back to title</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showHelp && (
+              <div className="overlay overlay--help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+                <div className="help-card">
+                  <button className="close-button" type="button" onClick={() => setShowHelp(false)} aria-label="Close help">×</button>
+                  <p className="card__eyebrow">Dispatch handbook</p>
+                  <h2 id="help-title">Four cues. One happy city.</h2>
+                  <div className="help-grid">
+                    <div><span className="cue-icon">↓</span><strong>Low hum</strong><p>Give North–South traffic the green light.</p></div>
+                    <div><span className="cue-icon">↑</span><strong>High hum</strong><p>Open East–West and release that queue.</p></div>
+                    <div><span className="cue-icon">■</span><strong>Loud burst</strong><p>Stop every lane for a quick recovery.</p></div>
+                    <div><span className="cue-icon">✦</span><strong>Steady tone</strong><p>Hold your pitch to earn a flow boost.</p></div>
+                  </div>
+                  <div className="help-note">
+                    <strong>No microphone? No problem.</strong>
+                    Arrow or WASD keys choose a lane, Space stops traffic, Shift boosts, and P pauses.
+                  </div>
+                  <button className="primary-button" type="button" onClick={() => setShowHelp(false)}>Got it</button>
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

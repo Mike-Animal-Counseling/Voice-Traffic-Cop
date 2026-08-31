@@ -191,7 +191,9 @@ export const createInitialState = (): GameState => ({
   score: 0,
   streak: 0,
   bestStreak: 0,
+  carsCleared: 0,
   congestion: 10,
+  conflictCooldown: 0,
   graceTimer: 20,
   dangerFlash: 0,
   delightFlash: 0,
@@ -213,7 +215,9 @@ export const startGame = (): GameState => ({
 });
 
 export const updateGame = (previous: GameState, input: { activeAxis: Axis; emergencyStop: boolean; boost: number; inputLabel: string }, delta: number): GameState => {
-  if (previous.phase !== 'running') {
+  if (previous.phase === 'paused' || previous.phase === 'gameOver') return previous;
+
+  if (previous.phase === 'title') {
     return {
       ...previous,
       activeAxis: input.activeAxis,
@@ -230,6 +234,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     emergencyStop: input.emergencyStop,
     boostTimer: Math.max(0, previous.boostTimer - delta),
     announcement: input.inputLabel,
+    conflictCooldown: Math.max(0, previous.conflictCooldown - delta),
     dangerFlash: Math.max(0, previous.dangerFlash - delta * 2.2),
     delightFlash: Math.max(0, previous.delightFlash - delta * 1.8),
     justLeveledUp: false,
@@ -266,6 +271,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     next.score += Math.round(cleared * 12 * comboMultiplier);
     next.streak += cleared;
     next.bestStreak = Math.max(next.bestStreak, next.streak);
+    next.carsCleared += cleared;
     next.delightFlash = Math.min(1, next.delightFlash + 0.26);
   }
 
@@ -297,8 +303,9 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     }),
   );
 
-  if (crossingConflict) {
+  if (crossingConflict && next.conflictCooldown <= 0) {
     next.congestion = Math.min(MAX_CONGESTION, next.congestion + currentConfig.conflictPenalty);
+    next.conflictCooldown = 1.2;
     next.dangerFlash = 1;
     next.streak = 0;
     next.announcement = 'Too close! Pip throws the intersection into a fluster.';
@@ -315,7 +322,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
 
   if (next.emergencyStop) {
     next.congestion = Math.min(MAX_CONGESTION, next.congestion + delta * 1.2);
-    next.streak = Math.max(0, next.streak - delta > 0 ? next.streak : 0);
+    next.streak = 0;
   }
 
   const nextConfig = DIFFICULTY_STEPS[next.difficultyLevel];

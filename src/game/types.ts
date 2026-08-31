@@ -1,6 +1,6 @@
 export type Axis = 'northSouth' | 'eastWest';
 export type Direction = 'northbound' | 'southbound' | 'eastbound' | 'westbound';
-export type GamePhase = 'title' | 'running' | 'gameOver';
+export type GamePhase = 'title' | 'running' | 'paused' | 'gameOver';
 export type DifficultyTier = 'rookie' | 'cadet' | 'captain';
 
 export interface VehiclePalette {
@@ -60,7 +60,9 @@ export interface GameState {
   score: number;
   streak: number;
   bestStreak: number;
+  carsCleared: number;
   congestion: number;
+  conflictCooldown: number;
   graceTimer: number;
   dangerFlash: number;
   delightFlash: number;

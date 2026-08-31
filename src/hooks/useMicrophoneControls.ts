@@ -74,6 +74,7 @@ const bandConfidence = (pitch: number, center: number) => Math.max(0, 1 - Math.a
 
 export const useMicrophoneControls = () => {
   const [snapshot, setSnapshot] = useState<MicSnapshot>(initialSnapshot);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -110,7 +111,16 @@ export const useMicrophoneControls = () => {
   useEffect(() => stopMonitoring, [stopMonitoring]);
 
   const requestPermission = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
+      setErrorMessage('This browser does not support live microphone controls.');
+      setSnapshot((current) => ({ ...current, permission: 'denied', transcript: 'Mic unavailable' }));
+      return false;
+    }
+
+    if (streamRef.current && audioContextRef.current) return true;
+
     try {
+      setErrorMessage(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -255,8 +265,15 @@ export const useMicrophoneControls = () => {
       };
 
       rafRef.current = requestAnimationFrame(tick);
-    } catch {
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof DOMException && error.name === 'NotAllowedError'
+          ? 'Microphone access was blocked. You can still play with keyboard or touch controls.'
+          : 'The microphone could not be started. Try keyboard or touch controls instead.';
+      setErrorMessage(message);
       setSnapshot((current) => ({ ...current, permission: 'denied', transcript: 'Microphone blocked' }));
+      return false;
     }
   }, []);
 
@@ -278,5 +295,5 @@ export const useMicrophoneControls = () => {
     return { activeAxis, emergencyStop, boost, inputLabel };
   }, [snapshot]);
 
-  return { snapshot, laneControl, requestPermission, stopMonitoring };
+  return { snapshot, laneControl, requestPermission, stopMonitoring, errorMessage };
 };
