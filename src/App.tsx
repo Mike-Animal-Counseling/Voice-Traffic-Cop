@@ -26,34 +26,40 @@ const getStoredBest = () => {
 };
 
 const vehicleStyle = (vehicle: Vehicle) => {
-  const isVertical = vehicle.axis === 'northSouth';
   const x =
     vehicle.direction === 'northbound' || vehicle.direction === 'southbound'
-      ? CENTER_X + vehicle.laneOffset - vehicle.width / 2
+      ? CENTER_X + vehicle.laneOffset - vehicle.length / 2
       : vehicle.position - vehicle.length / 2;
   const y =
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
       ? CENTER_Y + vehicle.laneOffset - vehicle.width / 2
-      : vehicle.position - vehicle.length / 2;
+      : vehicle.position - vehicle.width / 2;
 
-  const rotate =
+  const rotation =
     vehicle.direction === 'northbound'
-      ? 'rotate(-90deg)'
+      ? '-90deg'
       : vehicle.direction === 'southbound'
-        ? 'rotate(90deg)'
-        : vehicle.direction === 'westbound'
-          ? 'scaleX(-1)'
-          : 'none';
+        ? '90deg'
+        : '0deg';
+
+  const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + vehicle.laneOffset;
+  const perspectiveScale = Math.max(0.86, Math.min(1.12, 0.86 + (screenY / WORLD_HEIGHT) * 0.26));
+  const accelerationTilt = Math.max(-3.5, Math.min(3.5, -vehicle.acceleration * 0.08));
+  const speedLevel = Math.max(0, Math.min(1, vehicle.speed / 88));
 
   return {
     left: `${(x / WORLD_WIDTH) * 100}%`,
     top: `${(y / WORLD_HEIGHT) * 100}%`,
-    width: `${(((isVertical ? vehicle.width : vehicle.length) / WORLD_WIDTH) * 100).toFixed(3)}%`,
-    height: `${(((isVertical ? vehicle.length : vehicle.width) / WORLD_HEIGHT) * 100).toFixed(3)}%`,
-    transform: rotate,
-    '--body': vehicle.color.body,
-    '--roof': vehicle.color.roof,
-    '--accent': vehicle.color.accent,
+    width: `${((vehicle.length / WORLD_WIDTH) * 100).toFixed(3)}%`,
+    height: `${((vehicle.width / WORLD_HEIGHT) * 100).toFixed(3)}%`,
+    zIndex: 12 + Math.round((screenY / WORLD_HEIGHT) * 8),
+    '--vehicle-rotation': rotation,
+    '--vehicle-facing': vehicle.direction === 'westbound' ? '-1' : '1',
+    '--vehicle-scale': perspectiveScale.toFixed(3),
+    '--accel-tilt': `${accelerationTilt.toFixed(2)}deg`,
+    '--speed-level': speedLevel.toFixed(3),
+    '--motion-duration': `${Math.max(0.42, 1.3 - speedLevel * 0.7).toFixed(2)}s`,
+    '--wobble-delay': `${(-vehicle.wobbleSeed).toFixed(2)}s`,
   } as React.CSSProperties;
 };
 
@@ -429,14 +435,14 @@ function App() {
 
               <div className="intersection-center">
                 <div className="roundabout-bloom" />
-                <div className={`voice-wave voice-wave--${game.activeAxis} ${game.emergencyStop ? 'voice-wave--stop' : ''}`} aria-hidden="true">
+                <div className={`voice-wave voice-wave--${game.activeAxis} ${game.emergencyStop ? 'voice-wave--stop' : ''} ${game.boostTimer > 0.5 ? 'voice-wave--boost' : ''}`} aria-hidden="true">
                   <i />
                   <i />
                   <i />
                 </div>
                 <div className="pip">
                   <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{currentInput}</div>
-                  <div className={`pip-avatar ${game.congestion > 70 ? 'pip-avatar--urgent' : ''}`}>
+                  <div className={`pip-avatar pip-avatar--${game.activeAxis} ${game.congestion > 70 ? 'pip-avatar--urgent' : ''} ${game.emergencyStop ? 'pip-avatar--stop' : ''}`}>
                     <span className="pip-avatar__glow" />
                     <img src="/images/pip-bristle-3d.png" alt="Pip Bristle directing the intersection" decoding="async" />
                   </div>
@@ -456,19 +462,38 @@ function App() {
                 <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
               </div>
 
-              {game.vehicles.map((vehicle) => (
-                <div
-                  className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''}`}
-                  style={vehicleStyle(vehicle)}
-                  key={vehicle.id}
-                >
-                  <span className="vehicle__body" />
-                  <span className="vehicle__roof" />
-                  <span className="vehicle__window" />
-                  <span className="vehicle__wheel vehicle__wheel--front" />
-                  <span className="vehicle__wheel vehicle__wheel--rear" />
-                </div>
-              ))}
+              {game.vehicles.map((vehicle) => {
+                const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
+                const braking = vehicle.acceleration < -18;
+                const boosted = vehicle.axis === game.activeAxis && game.boostTimer > 0.5 && vehicle.speed > 25;
+                const mood = game.congestion > 70 ? '!' : vehicle.id % 2 === 0 ? '…' : '♪';
+
+                return (
+                  <div
+                    className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''} ${vehicle.speed > 7 ? 'vehicle--moving' : ''} ${waiting ? 'vehicle--waiting' : ''} ${braking ? 'vehicle--braking' : ''} ${boosted ? 'vehicle--boosted' : ''}`}
+                    style={vehicleStyle(vehicle)}
+                    key={vehicle.id}
+                    aria-hidden="true"
+                  >
+                    <div className="vehicle__rig">
+                      <span className="vehicle__ground-shadow" />
+                      <span className="vehicle__speed-trail"><i /><i /></span>
+                      <span className="vehicle__exhaust"><i /><i /><i /></span>
+                      <img
+                        className="vehicle__sprite"
+                        src={`/images/vehicles/${vehicle.kind}.webp`}
+                        alt=""
+                        draggable={false}
+                        decoding="async"
+                      />
+                      <span className="vehicle__headlight vehicle__headlight--one" />
+                      <span className="vehicle__headlight vehicle__headlight--two" />
+                      <span className="vehicle__brake-light" />
+                    </div>
+                    {waiting && <span className="vehicle__mood">{mood}</span>}
+                  </div>
+                );
+              })}
 
               {game.pedestrians.map((pedestrian) => (
                 <div

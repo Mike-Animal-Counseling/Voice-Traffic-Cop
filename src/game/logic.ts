@@ -91,8 +91,8 @@ const createPedestrians = (): Pedestrian[] => {
 const createVehicle = (id: number, direction: Direction): Vehicle => {
   const laneOffset = direction === 'northbound' || direction === 'eastbound' ? -34 : 34;
   const kind = randomFrom(['bubble', 'beetle', 'snail', 'hopper'] as const);
-  const lengthMap = { bubble: 72, beetle: 76, snail: 84, hopper: 92 };
-  const widthMap = { bubble: 34, beetle: 38, snail: 40, hopper: 44 };
+  const lengthMap = { bubble: 78, beetle: 80, snail: 96, hopper: 94 };
+  const widthMap = { bubble: 42, beetle: 44, snail: 46, hopper: 48 };
 
   let position = 0;
   if (direction === 'northbound') position = WORLD_HEIGHT + 120;
@@ -107,6 +107,8 @@ const createVehicle = (id: number, direction: Direction): Vehicle => {
     laneOffset,
     position,
     speed: 0,
+    acceleration: 0,
+    waitingTime: 0,
     length: lengthMap[kind],
     width: widthMap[kind],
     color: randomFrom(VEHICLE_PALETTES),
@@ -251,6 +253,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
   for (const direction of laneDirections) {
     const laneVehicles = sortForLane(next.vehicles, direction);
     laneVehicles.forEach((vehicle, index) => {
+      const previousSpeed = vehicle.speed;
       const targetSpeed = desiredSpeed(vehicle, next);
       vehicle.speed += (targetSpeed - vehicle.speed) * Math.min(1, delta * LANE_ACCELERATION[direction] * 0.05);
 
@@ -259,6 +262,12 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
         const gap = Math.abs(leader.position - vehicle.position);
         if (gap < SAFE_DISTANCE) vehicle.speed = Math.min(vehicle.speed, Math.max(0, leader.speed - (SAFE_DISTANCE - gap) * 0.7));
       }
+
+      vehicle.acceleration = (vehicle.speed - previousSpeed) / Math.max(delta, 0.001);
+      vehicle.waitingTime =
+        vehicle.speed < 7
+          ? Math.min(12, vehicle.waitingTime + delta)
+          : Math.max(0, vehicle.waitingTime - delta * 2.5);
       updateVehiclePosition(vehicle, delta);
     });
   }

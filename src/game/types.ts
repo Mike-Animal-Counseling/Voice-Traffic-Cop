@@ -16,6 +16,8 @@ export interface Vehicle {
   laneOffset: number;
   position: number;
   speed: number;
+  acceleration: number;
+  waitingTime: number;
   length: number;
   width: number;
   color: VehiclePalette;
