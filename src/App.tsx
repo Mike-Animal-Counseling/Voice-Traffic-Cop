@@ -87,7 +87,6 @@ const TrafficSignal = ({ position, state }: TrafficSignalProps) => (
     <span className={`signal-cluster__light signal-cluster__light--red ${state === 'red' ? 'is-lit' : ''}`} />
     <span className={`signal-cluster__light signal-cluster__light--amber ${state === 'amber' ? 'is-lit' : ''}`} />
     <span className={`signal-cluster__light signal-cluster__light--green ${state === 'green' ? 'is-lit' : ''}`} />
-    <span className="signal-cluster__reflection" />
   </div>
 );
 
@@ -459,7 +458,7 @@ function App() {
             </div>
 
             <div className="street-stage">
-              <img className="game-world-art" src="/images/juniper-junction-world.png" alt="" aria-hidden="true" decoding="async" />
+              <img className="game-world-art" src="/images/juniper-junction-world-no-signals-v2.png" alt="" aria-hidden="true" decoding="async" />
               <div className="world-lighting" aria-hidden="true" />
               <div className="ambient-particles" aria-hidden="true">
                 {new Array(14).fill(null).map((_, index) => <i key={index} />)}
