@@ -67,6 +67,91 @@ const pedestrianClass = (species: Pedestrian['species']) =>
     pigeon: 'pigeon',
   })[species];
 
+interface HelpDialogProps {
+  onClose: () => void;
+}
+
+const HelpDialog = ({ onClose }: HelpDialogProps) => (
+  <div className="overlay overlay--help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div className="help-card">
+      <button className="close-button" type="button" onClick={onClose} aria-label="Close help">×</button>
+      <p className="card__eyebrow">Dispatch handbook</p>
+      <h2 id="help-title">Four cues. One happy city.</h2>
+      <div className="help-grid">
+        <div><span className="cue-icon">↓</span><strong>Low hum</strong><p>Give North–South traffic the green light.</p></div>
+        <div><span className="cue-icon">↑</span><strong>High hum</strong><p>Open East–West and release that queue.</p></div>
+        <div><span className="cue-icon">■</span><strong>Loud burst</strong><p>Stop every lane for a quick recovery.</p></div>
+        <div><span className="cue-icon">✦</span><strong>Steady tone</strong><p>Hold your pitch to earn a flow boost.</p></div>
+      </div>
+      <div className="help-note">
+        <strong>No microphone? No problem.</strong>
+        Arrow or WASD keys choose a lane, Space stops traffic, Shift boosts, and P pauses.
+      </div>
+      <button className="primary-button" type="button" onClick={onClose}>Got it</button>
+    </div>
+  </div>
+);
+
+interface TitleScreenProps {
+  highScore: number;
+  showHelp: boolean;
+  onVoiceStart: () => void;
+  onManualStart: () => void;
+  onOpenHelp: () => void;
+  onCloseHelp: () => void;
+}
+
+const TitleScreen = ({ highScore, showHelp, onVoiceStart, onManualStart, onOpenHelp, onCloseHelp }: TitleScreenProps) => (
+  <main className="title-page">
+    <div className="title-page__glow title-page__glow--one" />
+    <div className="title-page__glow title-page__glow--two" />
+    <div className="title-layout">
+      <section className="intro-copy">
+        <div className="intro-brand">
+          <span className="intro-brand__mark" aria-hidden="true">〽</span>
+          Juniper Junction Dispatch
+        </div>
+        <div className="intro-heading">
+          <p className="card__eyebrow">A tiny city that listens</p>
+          <h1><span>Voice</span><span>Traffic Cop</span></h1>
+          <p className="intro-lead">Conduct rush hour with a hum. Guide Pip, clear the queues, and keep the coziest crossing in town moving.</p>
+        </div>
+
+        <div className="feature-pills" aria-label="Game features">
+          <span>Voice controlled</span>
+          <span>Audio stays local</span>
+          <span>Keyboard friendly</span>
+        </div>
+
+        <div className="start-actions">
+          <button className="primary-button primary-button--voice" type="button" onClick={onVoiceStart}>
+            <span className="button-icon" aria-hidden="true">●</span>
+            <span><small>Recommended</small>Play with voice</span>
+          </button>
+          <button className="secondary-button" type="button" onClick={onManualStart}>Play with keys</button>
+        </div>
+
+        <div className="intro-footer">
+          <button type="button" className="text-button" onClick={onOpenHelp}>How to play <kbd>H</kbd></button>
+          <span>Personal best <strong>{highScore.toLocaleString()}</strong></span>
+        </div>
+      </section>
+
+      <section className="intro-art" aria-label="Pip directing traffic in Juniper Junction">
+        <img src="/images/voice-traffic-cop-hero.png" alt="Pip the hedgehog directing colorful cars with glowing sound waves" decoding="async" fetchPriority="high" />
+        <div className="art-vignette" />
+        <div className="art-caption">
+          <span className="live-dot" />
+          <span><small>First assignment</small><strong>Rookie Patrol</strong></span>
+        </div>
+        <div className="art-callout art-callout--low"><b>Low hum</b><span>North–South</span></div>
+        <div className="art-callout art-callout--high"><b>High hum</b><span>East–West</span></div>
+      </section>
+    </div>
+    {showHelp && <HelpDialog onClose={onCloseHelp} />}
+  </main>
+);
+
 function App() {
   const [game, setGame] = useState<GameState>(createInitialState);
   const [stageScale, setStageScale] = useState(1);
@@ -197,6 +282,19 @@ function App() {
 
   const returnToTitle = () => setGame(createInitialState());
 
+  if (game.phase === 'title') {
+    return (
+      <TitleScreen
+        highScore={highScore}
+        showHelp={showHelp}
+        onVoiceStart={() => void startRun('voice')}
+        onManualStart={() => void startRun('manual')}
+        onOpenHelp={() => setShowHelp(true)}
+        onCloseHelp={() => setShowHelp(false)}
+      />
+    );
+  }
+
   const activeNS = game.activeAxis === 'northSouth' && !game.emergencyStop;
   const activeEW = game.activeAxis === 'eastWest' && !game.emergencyStop;
   const trafficMood =
@@ -290,6 +388,11 @@ function App() {
             </div>
 
             <div className="street-stage">
+              <img className="game-world-art" src="/images/juniper-junction-world.png" alt="" aria-hidden="true" decoding="async" />
+              <div className="world-lighting" aria-hidden="true" />
+              <div className="ambient-particles" aria-hidden="true">
+                {new Array(14).fill(null).map((_, index) => <i key={index} />)}
+              </div>
               <div className="city-block city-block--top-left">
                 <div className="building cluster-a">
                   <span className="awning" />
@@ -333,14 +436,9 @@ function App() {
                 </div>
                 <div className="pip">
                   <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{currentInput}</div>
-                  <div className={`pip-tail ${game.congestion > 70 ? 'pip-tail--poof' : ''}`} />
-                  <div className="pip-body">
-                    <div className="pip-cap" />
-                    <div className="pip-face">
-                      <span className="eye" />
-                      <span className="eye" />
-                    </div>
-                    <div className={`pip-baton ${activeNS ? 'pip-baton--ns' : 'pip-baton--ew'}`} />
+                  <div className={`pip-avatar ${game.congestion > 70 ? 'pip-avatar--urgent' : ''}`}>
+                    <span className="pip-avatar__glow" />
+                    <img src="/images/pip-bristle-3d.png" alt="Pip Bristle directing the intersection" decoding="async" />
                   </div>
                 </div>
               </div>
@@ -495,54 +593,6 @@ function App() {
               {game.announcement}
             </div>
 
-            {game.phase === 'title' && (
-              <div className="overlay overlay--title">
-                <div className="intro-card">
-                  <section className="intro-copy">
-                    <div className="intro-brand">
-                      <span className="intro-brand__mark" aria-hidden="true">〽</span>
-                      Juniper Junction Dispatch
-                    </div>
-                    <p className="card__eyebrow">A tiny city that listens</p>
-                    <h1>Voice<br />Traffic Cop</h1>
-                    <p className="intro-lead">Conduct rush hour with a hum. Guide Pip, clear the queues, and keep the coziest crossing in town moving.</p>
-
-                    <div className="feature-pills">
-                      <span>Voice controlled</span>
-                      <span>Audio stays local</span>
-                      <span>Keyboard friendly</span>
-                    </div>
-
-                    <div className="start-actions">
-                      <button className="primary-button primary-button--voice" type="button" onClick={() => void startRun('voice')}>
-                        <span className="button-icon" aria-hidden="true">●</span>
-                        <span><small>Recommended</small>Play with voice</span>
-                      </button>
-                      <button className="secondary-button" type="button" onClick={() => void startRun('manual')}>
-                        Play with keys
-                      </button>
-                    </div>
-
-                    <div className="intro-footer">
-                      <button type="button" className="text-button" onClick={() => setShowHelp(true)}>How to play <kbd>H</kbd></button>
-                      <span>Personal best <strong>{highScore.toLocaleString()}</strong></span>
-                    </div>
-                  </section>
-
-                  <section className="intro-art" aria-label="Pip directing traffic in Juniper Junction">
-                    <img src="/images/voice-traffic-cop-hero.png" alt="Pip the hedgehog directing colorful cars with glowing sound waves" />
-                    <div className="art-vignette" />
-                    <div className="art-caption">
-                      <span className="live-dot" />
-                      <span><small>Next shift</small><strong>{levelName}</strong></span>
-                    </div>
-                    <div className="art-callout art-callout--low"><b>Low hum</b><span>North–South</span></div>
-                    <div className="art-callout art-callout--high"><b>High hum</b><span>East–West</span></div>
-                  </section>
-                </div>
-              </div>
-            )}
-
             {game.phase === 'paused' && (
               <div className="overlay overlay--pause">
                 <div className="pause-card">
@@ -579,28 +629,13 @@ function App() {
               </div>
             )}
 
-            {showHelp && (
-              <div className="overlay overlay--help" role="dialog" aria-modal="true" aria-labelledby="help-title">
-                <div className="help-card">
-                  <button className="close-button" type="button" onClick={() => setShowHelp(false)} aria-label="Close help">×</button>
-                  <p className="card__eyebrow">Dispatch handbook</p>
-                  <h2 id="help-title">Four cues. One happy city.</h2>
-                  <div className="help-grid">
-                    <div><span className="cue-icon">↓</span><strong>Low hum</strong><p>Give North–South traffic the green light.</p></div>
-                    <div><span className="cue-icon">↑</span><strong>High hum</strong><p>Open East–West and release that queue.</p></div>
-                    <div><span className="cue-icon">■</span><strong>Loud burst</strong><p>Stop every lane for a quick recovery.</p></div>
-                    <div><span className="cue-icon">✦</span><strong>Steady tone</strong><p>Hold your pitch to earn a flow boost.</p></div>
-                  </div>
-                  <div className="help-note">
-                    <strong>No microphone? No problem.</strong>
-                    Arrow or WASD keys choose a lane, Space stops traffic, Shift boosts, and P pauses.
-                  </div>
-                  <button className="primary-button" type="button" onClick={() => setShowHelp(false)}>Got it</button>
-                </div>
-              </div>
-            )}
+            {showHelp && <HelpDialog onClose={() => setShowHelp(false)} />}
           </div>
         </div>
+      </div>
+      <div className="orientation-hint" role="status">
+        <strong>Turn your screen sideways</strong>
+        <span>Juniper Junction plays best in landscape.</span>
       </div>
     </main>
   );
