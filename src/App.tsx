@@ -26,21 +26,24 @@ const getStoredBest = () => {
 };
 
 const vehicleStyle = (vehicle: Vehicle) => {
-  const x =
+  const centerX =
     vehicle.direction === 'northbound' || vehicle.direction === 'southbound'
-      ? CENTER_X + vehicle.laneOffset - vehicle.length / 2
-      : vehicle.position - vehicle.length / 2;
-  const y =
+      ? CENTER_X + vehicle.laneOffset
+      : vehicle.position;
+  const centerY =
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
-      ? CENTER_Y + vehicle.laneOffset - vehicle.width / 2
-      : vehicle.position - vehicle.width / 2;
+      ? CENTER_Y + vehicle.laneOffset
+      : vehicle.position;
+  const rigSize = vehicle.length * 1.08;
 
   const rotation =
     vehicle.direction === 'northbound'
-      ? '-90deg'
+      ? '180deg'
       : vehicle.direction === 'southbound'
-        ? '90deg'
-        : '0deg';
+        ? '0deg'
+        : vehicle.direction === 'eastbound'
+          ? '-90deg'
+          : '90deg';
 
   const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + vehicle.laneOffset;
   const perspectiveScale = Math.max(0.86, Math.min(1.12, 0.86 + (screenY / WORLD_HEIGHT) * 0.26));
@@ -48,13 +51,12 @@ const vehicleStyle = (vehicle: Vehicle) => {
   const speedLevel = Math.max(0, Math.min(1, vehicle.speed / 88));
 
   return {
-    left: `${(x / WORLD_WIDTH) * 100}%`,
-    top: `${(y / WORLD_HEIGHT) * 100}%`,
-    width: `${((vehicle.length / WORLD_WIDTH) * 100).toFixed(3)}%`,
-    height: `${((vehicle.width / WORLD_HEIGHT) * 100).toFixed(3)}%`,
+    left: `${((centerX - rigSize / 2) / WORLD_WIDTH) * 100}%`,
+    top: `${((centerY - rigSize / 2) / WORLD_HEIGHT) * 100}%`,
+    width: `${((rigSize / WORLD_WIDTH) * 100).toFixed(3)}%`,
+    aspectRatio: '1',
     zIndex: 12 + Math.round((screenY / WORLD_HEIGHT) * 8),
     '--vehicle-rotation': rotation,
-    '--vehicle-facing': vehicle.direction === 'westbound' ? '-1' : '1',
     '--vehicle-scale': perspectiveScale.toFixed(3),
     '--accel-tilt': `${accelerationTilt.toFixed(2)}deg`,
     '--speed-level': speedLevel.toFixed(3),
@@ -481,14 +483,15 @@ function App() {
                       <span className="vehicle__exhaust"><i /><i /><i /></span>
                       <img
                         className="vehicle__sprite"
-                        src={`/images/vehicles/${vehicle.kind}.webp`}
+                        src={`/images/vehicles/${vehicle.kind}-top.webp`}
                         alt=""
                         draggable={false}
                         decoding="async"
                       />
                       <span className="vehicle__headlight vehicle__headlight--one" />
                       <span className="vehicle__headlight vehicle__headlight--two" />
-                      <span className="vehicle__brake-light" />
+                      <span className="vehicle__brake-light vehicle__brake-light--one" />
+                      <span className="vehicle__brake-light vehicle__brake-light--two" />
                     </div>
                     {waiting && <span className="vehicle__mood">{mood}</span>}
                   </div>
