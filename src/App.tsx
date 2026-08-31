@@ -1,5 +1,5 @@
 import type React from 'react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from './game/constants';
 import { createInitialState, startGame, updateGame } from './game/logic';
 import { useManualControls } from './hooks/useManualControls';
@@ -7,10 +7,7 @@ import { useMicrophoneControls } from './hooks/useMicrophoneControls';
 import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
 
 type ControlMode = 'voice' | 'manual';
-
-const ThreeGameWorld = lazy(() =>
-  import('./components/ThreeGameWorld').then((module) => ({ default: module.ThreeGameWorld })),
-);
+type PipPose = 'idle' | 'wave' | 'jam' | 'stop' | 'cheer';
 
 const axisLabel = (axis: Axis) => (axis === 'northSouth' ? 'North–South' : 'East–West');
 const axisShortLabel = (axis: Axis) => (axis === 'northSouth' ? 'N · S' : 'E · W');
@@ -78,6 +75,44 @@ const pedestrianClass = (species: Pedestrian['species']) =>
     gazelle: 'gazelle',
     pigeon: 'pigeon',
   })[species];
+
+interface TrafficSignalProps {
+  position: 'top' | 'right' | 'bottom' | 'left';
+  isGreen: boolean;
+  emergency: boolean;
+}
+
+const TrafficSignal = ({ position, isGreen, emergency }: TrafficSignalProps) => (
+  <TrafficSignalWithTransition position={position} isGreen={isGreen} emergency={emergency} />
+);
+
+const TrafficSignalWithTransition = ({ position, isGreen, emergency }: TrafficSignalProps) => {
+  const [displayState, setDisplayState] = useState<'red' | 'amber' | 'green'>(isGreen ? 'green' : 'red');
+  const previousGreen = useRef(isGreen);
+
+  useEffect(() => {
+    if (emergency) {
+      previousGreen.current = false;
+      setDisplayState('red');
+      return undefined;
+    }
+
+    if (previousGreen.current === isGreen) return undefined;
+    previousGreen.current = isGreen;
+    setDisplayState('amber');
+    const timeoutId = window.setTimeout(() => setDisplayState(isGreen ? 'green' : 'red'), isGreen ? 360 : 280);
+    return () => window.clearTimeout(timeoutId);
+  }, [emergency, isGreen]);
+
+  return (
+    <div className={`signal-cluster signal-cluster--${position}`} aria-hidden="true">
+      <img className="signal-cluster__body" src="/images/traffic-signal-3d.png" alt="" decoding="async" />
+      <span className={`signal-cluster__light signal-cluster__light--red ${displayState === 'red' ? 'is-lit' : ''}`} />
+      <span className={`signal-cluster__light signal-cluster__light--amber ${displayState === 'amber' ? 'is-lit' : ''}`} />
+      <span className={`signal-cluster__light signal-cluster__light--green ${displayState === 'green' ? 'is-lit' : ''}`} />
+    </div>
+  );
+};
 
 interface HelpDialogProps {
   onClose: () => void;
@@ -170,6 +205,7 @@ function App() {
   const [controlMode, setControlMode] = useState<ControlMode>('voice');
   const [highScore, setHighScore] = useState(getStoredBest);
   const [showHelp, setShowHelp] = useState(false);
+  const [pipIdlePose, setPipIdlePose] = useState<PipPose>('idle');
   const {
     snapshot,
     laneControl: microphoneControl,
@@ -266,6 +302,24 @@ function App() {
 
   useEffect(() => () => stopMonitoring(), [stopMonitoring]);
 
+  useEffect(() => {
+    if (game.phase !== 'running') {
+      setPipIdlePose('idle');
+      return undefined;
+    }
+
+    let timeoutId = 0;
+    const scheduleReaction = () => {
+      timeoutId = window.setTimeout(() => {
+        setPipIdlePose(Math.random() > 0.64 ? 'wave' : 'idle');
+        scheduleReaction();
+      }, 2800 + Math.random() * 3200);
+    };
+
+    scheduleReaction();
+    return () => window.clearTimeout(timeoutId);
+  }, [game.phase]);
+
   const startRun = async (mode: ControlMode) => {
     let selectedMode = mode;
     if (mode === 'voice') {
@@ -325,6 +379,22 @@ function App() {
         : snapshot.transcript
       : manual.laneControl.inputLabel;
   const isPlaying = game.phase === 'running' || game.phase === 'paused';
+  const pipPose: PipPose = game.emergencyStop
+    ? 'stop'
+    : game.congestion >= 70
+      ? 'jam'
+      : game.delightFlash > 0.18
+        ? 'cheer'
+        : game.boostTimer > 0.5
+          ? 'wave'
+          : pipIdlePose;
+  const pipMessage = game.emergencyStop
+    ? 'All paws — stop!'
+    : game.congestion >= 70
+      ? 'Queue building — hold steady!'
+      : game.delightFlash > 0.18
+        ? 'Clear roads — lovely work!'
+        : currentInput;
 
   const controlButtonProps = (axis: Axis) => ({
     className: `lane-button ${game.activeAxis === axis && !game.emergencyStop ? 'lane-button--active' : ''}`,
@@ -399,21 +469,7 @@ function App() {
               <span className="objective-strip__queue">{currentQueue} vehicles in route</span>
             </div>
 
-            <div className="street-stage street-stage--3d">
-              <Suspense fallback={<div className="three-world-loading">Building Juniper Junction…</div>}>
-                <ThreeGameWorld
-                  vehicles={game.vehicles}
-                  pedestrians={game.pedestrians}
-                  activeAxis={game.activeAxis}
-                  congestion={game.congestion}
-                  emergencyStop={game.emergencyStop}
-                  boostTimer={game.boostTimer}
-                  dangerFlash={game.dangerFlash}
-                  delightFlash={game.delightFlash}
-                  phase={game.phase}
-                />
-              </Suspense>
-              {false && <div className="legacy-world" aria-hidden="true">
+            <div className="street-stage">
               <img className="game-world-art" src="/images/juniper-junction-world.png" alt="" aria-hidden="true" decoding="async" />
               <div className="world-lighting" aria-hidden="true" />
               <div className="ambient-particles" aria-hidden="true">
@@ -461,26 +517,24 @@ function App() {
                   <i />
                 </div>
                 <div className="pip">
-                  <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{currentInput}</div>
+                  <div className={`speech-ribbon ${laneControl.inputLabel ? 'speech-ribbon--live' : ''}`}>{pipMessage}</div>
                   <div className={`pip-avatar pip-avatar--${game.activeAxis} ${game.congestion > 70 ? 'pip-avatar--urgent' : ''} ${game.emergencyStop ? 'pip-avatar--stop' : ''}`}>
                     <span className="pip-avatar__glow" />
-                    <img src="/images/pip-bristle-3d.png" alt="Pip Bristle directing the intersection" decoding="async" />
+                    <img
+                      key={pipPose}
+                      className={`pip-avatar__pose pip-avatar__pose--${pipPose}`}
+                      src={`/images/pip/pip-${pipPose}-v2.png`}
+                      alt="Pip Bristle directing the intersection"
+                      decoding="async"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="signal-cluster signal-cluster--top">
-                <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-              </div>
-              <div className="signal-cluster signal-cluster--right">
-                <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-              </div>
-              <div className="signal-cluster signal-cluster--bottom">
-                <span className={`signal-lamp ${activeNS ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-              </div>
-              <div className="signal-cluster signal-cluster--left">
-                <span className={`signal-lamp ${activeEW ? 'signal-lamp--green' : 'signal-lamp--red'}`} />
-              </div>
+              <TrafficSignal position="top" isGreen={activeNS} emergency={game.emergencyStop} />
+              <TrafficSignal position="right" isGreen={activeEW} emergency={game.emergencyStop} />
+              <TrafficSignal position="bottom" isGreen={activeNS} emergency={game.emergencyStop} />
+              <TrafficSignal position="left" isGreen={activeEW} emergency={game.emergencyStop} />
 
               {game.vehicles.map((vehicle) => {
                 const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
@@ -529,7 +583,6 @@ function App() {
                   <span className={`pedestrian__body pedestrian__body--${pedestrianClass(pedestrian.species)}`} />
                 </div>
               ))}
-              </div>}
             </div>
 
             <aside className="control-dock" aria-label="Traffic controls">

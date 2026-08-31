@@ -2093,6 +2093,12 @@ kbd {
   transform: scale(1.008);
 }
 
+.street-stage {
+  isolation: isolate;
+  overflow: hidden;
+  cursor: default;
+}
+
 .world-lighting {
   z-index: 1;
   pointer-events: none;
@@ -2100,6 +2106,18 @@ kbd {
     radial-gradient(circle at 50% 49%, rgba(255, 224, 137, calc(0.08 + var(--boost-flash, 0) * 0.16)), transparent 20%),
     linear-gradient(180deg, rgba(255, 225, 157, 0.06), transparent 40%, rgba(15, 47, 45, 0.12));
   mix-blend-mode: screen;
+  animation: daylight-breathe 12s ease-in-out infinite alternate;
+}
+
+.world-lighting::before {
+  content: "";
+  position: absolute;
+  inset: -12% -38%;
+  background:
+    radial-gradient(ellipse at 35% 45%, rgba(24, 61, 54, 0.11), transparent 26%),
+    radial-gradient(ellipse at 64% 58%, rgba(255, 244, 200, 0.12), transparent 30%);
+  mix-blend-mode: multiply;
+  animation: cloud-shadow 18s linear infinite;
 }
 
 .ambient-particles {
@@ -2137,6 +2155,16 @@ kbd {
   0%, 100% { translate: 0 0; opacity: 0.25; scale: 0.65; }
   40% { translate: 9px -14px; opacity: 0.9; scale: 1; }
   70% { translate: -6px -24px; opacity: 0.45; scale: 0.8; }
+}
+
+@keyframes daylight-breathe {
+  from { opacity: 0.78; }
+  to { opacity: 1; }
+}
+
+@keyframes cloud-shadow {
+  from { translate: -12% 0; }
+  to { translate: 12% 0; }
 }
 
 .street-stage > .city-block { opacity: 0; pointer-events: none; }
@@ -2200,6 +2228,19 @@ kbd {
   transform: scale(1.04);
 }
 
+.pip-avatar__pose {
+  animation: pip-pose-enter 320ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+.pip-avatar__pose--jam { object-position: center 45%; }
+.pip-avatar__pose--stop { object-position: center 44%; }
+.pip-avatar__pose--cheer { object-position: center 50%; }
+
+@keyframes pip-pose-enter {
+  from { opacity: 0.35; filter: brightness(1.18) saturate(0.86); }
+  to { opacity: 1; filter: brightness(1) saturate(1); }
+}
+
 .pip-avatar__glow {
   position: absolute;
   inset: -20%;
@@ -2236,17 +2277,60 @@ kbd {
 
 .signal-cluster {
   z-index: 10;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 8px 14px rgba(26, 23, 18, 0.26);
+  width: 5.2rem;
+  height: 8.6rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 0.55rem 0.5rem rgba(25, 31, 22, 0.34));
+  pointer-events: none;
 }
 
-.signal-lamp--green {
-  animation: signal-glow 1.5s ease-in-out infinite alternate;
+.signal-cluster--top { top: 24.5%; left: calc(50% - 2.6rem); transform: scale(0.78); transform-origin: center bottom; }
+.signal-cluster--bottom { top: 57%; left: calc(50% - 2.6rem); transform: scale(0.92); transform-origin: center bottom; }
+.signal-cluster--left { left: 31.5%; top: calc(50% - 4.3rem); transform: scale(0.86); }
+.signal-cluster--right { right: 31.5%; top: calc(50% - 4.3rem); transform: scale(0.86); }
+
+.signal-cluster__body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(0.48) brightness(0.74) contrast(1.08);
+}
+
+.signal-cluster__light {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+  translate: -50% -50%;
+  border-radius: 50%;
+  opacity: 0.1;
+  transition: opacity 180ms ease, box-shadow 180ms ease, scale 180ms ease;
+}
+
+.signal-cluster__light--red { top: 22.3%; color: #ff5148; background: currentColor; }
+.signal-cluster__light--amber { top: 35.1%; color: #ffc34f; background: currentColor; }
+.signal-cluster__light--green { top: 47.8%; color: #74f2a5; background: currentColor; }
+
+.signal-cluster__light.is-lit {
+  opacity: 0.98;
+  scale: 1.06;
+  box-shadow:
+    0 0 0.28rem currentColor,
+    0 0 0.8rem currentColor,
+    0 0 1.5rem color-mix(in srgb, currentColor 72%, transparent),
+    inset 0 0.14rem 0.22rem rgba(255, 255, 255, 0.88);
+  animation: signal-glow 1.4s ease-in-out infinite alternate;
 }
 
 @keyframes signal-glow {
-  from { box-shadow: 0 0 12px rgba(126, 232, 184, 0.55); }
-  to { box-shadow: 0 0 28px rgba(126, 232, 184, 0.95), 0 0 8px #d8ffe9 inset; }
+  from { filter: brightness(0.92); }
+  to { filter: brightness(1.24); }
 }
 
 .vehicle {
@@ -2506,7 +2590,10 @@ kbd {
 .pip-avatar--stop img { filter: saturate(0.82) contrast(1.05); transform: scale(1.08) rotate(0deg); }
 
 .scene-stage.scene--danger .street-stage {
-  animation: intersection-shake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 116, 89, calc(0.28 + var(--danger-flash, 0) * 0.34)),
+    inset 0 0 5rem rgba(124, 24, 19, calc(var(--danger-flash, 0) * 0.18)),
+    0 22px 54px rgba(64, 38, 27, 0.22);
 }
 
 @keyframes vehicle-drive {
@@ -2546,168 +2633,6 @@ kbd {
 @keyframes headlight-spark {
   from { opacity: 0.7; }
   to { opacity: 1; }
-}
-
-@keyframes intersection-shake {
-  0%, 100% { translate: 0 0; }
-  20% { translate: -4px 2px; }
-  40% { translate: 4px -2px; }
-  60% { translate: -3px -1px; }
-  80% { translate: 2px 2px; }
-}
-
-/* Living WebGL world */
-.street-stage--3d {
-  isolation: isolate;
-  overflow: hidden;
-  background: #b9d9cb;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.36),
-    inset 0 -80px 120px rgba(72, 55, 36, 0.12),
-    0 26px 60px rgba(39, 58, 50, 0.24);
-}
-
-.three-world-shell,
-.three-game-world {
-  position: absolute;
-  inset: 0;
-}
-
-.three-world-loading {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  color: #f7ebc8;
-  background: linear-gradient(145deg, #315f5b, #173f42);
-  font-size: 0.78rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.three-world-shell {
-  z-index: 1;
-  overflow: hidden;
-  background: linear-gradient(180deg, #b7ddd3 0%, #d7c38e 100%);
-}
-
-.three-game-world {
-  cursor: crosshair;
-  touch-action: pan-y;
-}
-
-.three-game-world canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  outline: none;
-}
-
-.three-world-fallback {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: end center;
-  gap: 0.2rem;
-  padding: 1.1rem;
-  color: #fff2d0;
-  background: #214a48;
-  text-align: center;
-}
-
-.three-world-fallback img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.72;
-}
-
-.three-world-fallback strong,
-.three-world-fallback span {
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 2px 12px rgba(17, 40, 38, 0.8);
-}
-
-.three-world-fallback span { font-size: 0.7rem; }
-
-.three-world-atmosphere {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 14% 8%, rgba(255, 237, 177, 0.2), transparent 27%),
-    linear-gradient(180deg, rgba(255, 248, 219, 0.04), transparent 44%, rgba(29, 57, 48, 0.13));
-  box-shadow: inset 0 0 100px rgba(32, 54, 45, 0.16);
-  mix-blend-mode: soft-light;
-}
-
-.pip-reaction {
-  position: absolute;
-  left: 50%;
-  bottom: 1rem;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2rem;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
-  color: #f8f2da;
-  background: rgba(24, 48, 43, 0.72);
-  box-shadow: 0 8px 24px rgba(22, 42, 37, 0.22);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  transform: translateX(-50%);
-  backdrop-filter: blur(12px) saturate(1.2);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.pip-reaction__dot {
-  width: 0.48rem;
-  height: 0.48rem;
-  border-radius: 50%;
-  background: #72e7ae;
-  box-shadow: 0 0 0 0.22rem rgba(114, 231, 174, 0.16), 0 0 0.8rem rgba(114, 231, 174, 0.72);
-  animation: three-world-status-pulse 1.8s ease-in-out infinite;
-}
-
-.pip-reaction--urgent {
-  color: #fff3e8;
-  background: rgba(93, 45, 36, 0.78);
-}
-
-.pip-reaction--urgent .pip-reaction__dot {
-  background: #ff7b68;
-  box-shadow: 0 0 0 0.22rem rgba(255, 123, 104, 0.16), 0 0 0.9rem rgba(255, 91, 72, 0.76);
-  animation-duration: 0.68s;
-}
-
-@keyframes three-world-status-pulse {
-  0%, 100% { opacity: 0.66; transform: scale(0.88); }
-  50% { opacity: 1; transform: scale(1.12); }
-}
-
-@media (max-width: 760px) {
-  .pip-reaction {
-    bottom: 0.55rem;
-    max-width: calc(100% - 1rem);
-    overflow: hidden;
-    font-size: 0.64rem;
-    text-overflow: ellipsis;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pip-reaction__dot { animation: none; }
 }
 
 .pedestrian { z-index: 7; filter: drop-shadow(0 4px 4px rgba(41, 30, 22, 0.25)); }
