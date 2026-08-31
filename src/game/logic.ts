@@ -71,8 +71,8 @@ const DIFFICULTY_STEPS: DifficultyConfig[] = [
 
 const configForLevel = (level: number) => DIFFICULTY_STEPS[Math.min(DIFFICULTY_STEPS.length - 1, level - 1)];
 
-const YELLOW_DURATION = 0.58;
-const ALL_RED_DURATION = 0.34;
+const YELLOW_DURATION = 0.36;
+const ALL_RED_DURATION = 0.12;
 const STOP_LINE_MARGIN = 14;
 const MIN_BUMPER_GAP = 20;
 
@@ -138,7 +138,10 @@ const distanceToStopLine = (vehicle: Vehicle): number => {
 };
 
 const axisHasGreen = (vehicle: Vehicle, state: GameState) =>
-  !state.emergencyStop && state.signalPhase === 'green' && state.activeAxis === vehicle.axis;
+  !state.emergencyStop &&
+  state.signalPhase === 'green' &&
+  state.activeAxis === vehicle.axis &&
+  state.clearanceAxis === null;
 
 const desiredSpeed = (vehicle: Vehicle, state: GameState): number => {
   if (state.emergencyStop) return 0;
@@ -162,9 +165,11 @@ const clampVehicleToStopLine = (vehicle: Vehicle) => {
   if (vehicle.direction === 'westbound') vehicle.position = CENTER_X + INTERSECTION_SIZE / 2 + halfLength + STOP_LINE_MARGIN;
 };
 
-const vehicleOccupiesIntersection = (vehicle: Vehicle) => {
+const vehicleNeedsClearance = (vehicle: Vehicle, clearingAxis: Axis) => {
+  if (vehicle.axis !== clearingAxis) return false;
   const center = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
-  return Math.abs(vehicle.position - center) < INTERSECTION_SIZE / 2 + vehicle.length / 2;
+  const insideIntersection = Math.abs(vehicle.position - center) < INTERSECTION_SIZE / 2 + vehicle.length / 2;
+  return insideIntersection && distanceToStopLine(vehicle) < -2;
 };
 
 const hasSafeSpawnGap = (candidate: Vehicle, vehicles: Vehicle[]) =>
@@ -231,6 +236,7 @@ export const createInitialState = (): GameState => ({
   activeAxis: DEFAULT_CONTROL.activeAxis,
   signalPhase: 'green',
   pendingAxis: null,
+  clearanceAxis: null,
   signalTimer: 0,
   emergencyStop: DEFAULT_CONTROL.emergencyStop,
   boostTimer: 0,
@@ -257,6 +263,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
       activeAxis: input.activeAxis,
       signalPhase: 'green',
       pendingAxis: null,
+      clearanceAxis: null,
       signalTimer: 0,
       emergencyStop: input.emergencyStop,
       announcement: input.inputLabel,
@@ -270,6 +277,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     activeAxis: previous.activeAxis,
     signalPhase: previous.signalPhase,
     pendingAxis: previous.pendingAxis,
+    clearanceAxis: previous.clearanceAxis,
     signalTimer: Math.max(0, previous.signalTimer - delta),
     emergencyStop: input.emergencyStop,
     boostTimer: Math.max(0, previous.boostTimer - delta),
@@ -288,12 +296,14 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
   if (input.emergencyStop) {
     next.signalPhase = 'allRed';
     next.pendingAxis = input.activeAxis;
+    next.clearanceAxis = null;
     next.signalTimer = 0;
   } else if (previous.emergencyStop) {
     next.signalPhase = 'allRed';
     next.pendingAxis = input.activeAxis;
+    next.clearanceAxis = null;
     next.signalTimer = ALL_RED_DURATION;
-  } else if (next.signalPhase === 'green' && input.activeAxis !== next.activeAxis) {
+  } else if (next.signalPhase === 'green' && input.activeAxis !== next.activeAxis && next.clearanceAxis === null) {
     next.signalPhase = 'yellow';
     next.pendingAxis = input.activeAxis;
     next.signalTimer = YELLOW_DURATION;
@@ -301,6 +311,7 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     if (input.activeAxis === next.activeAxis) {
       next.signalPhase = 'green';
       next.pendingAxis = null;
+      next.clearanceAxis = null;
       next.signalTimer = 0;
     } else {
       next.pendingAxis = input.activeAxis;
@@ -367,14 +378,22 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     next.delightFlash = Math.min(1, next.delightFlash + 0.26);
   }
 
+  const clearanceAxis = next.clearanceAxis;
+  if (clearanceAxis !== null && !next.vehicles.some((vehicle) => vehicleNeedsClearance(vehicle, clearanceAxis))) {
+    next.clearanceAxis = null;
+  }
+
   if (
     !next.emergencyStop &&
     next.signalPhase === 'allRed' &&
-    next.signalTimer <= 0 &&
-    !next.vehicles.some(vehicleOccupiesIntersection)
+    next.signalTimer <= 0
   ) {
+    const clearingAxis = next.activeAxis;
     next.activeAxis = next.pendingAxis ?? input.activeAxis;
     next.pendingAxis = null;
+    next.clearanceAxis = next.vehicles.some((vehicle) => vehicleNeedsClearance(vehicle, clearingAxis))
+      ? clearingAxis
+      : null;
     next.signalPhase = 'green';
   }
 

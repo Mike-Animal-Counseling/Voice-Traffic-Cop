@@ -72,6 +72,7 @@ export interface GameState {
   activeAxis: Axis;
   signalPhase: SignalPhase;
   pendingAxis: Axis | null;
+  clearanceAxis: Axis | null;
   signalTimer: number;
   emergencyStop: boolean;
   boostTimer: number;

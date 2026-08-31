@@ -2287,7 +2287,7 @@ kbd {
   border-radius: 50%;
   opacity: 0.035;
   filter: saturate(0.8) brightness(0.64);
-  transition: opacity 180ms ease, box-shadow 180ms ease, scale 180ms ease;
+  transition: opacity 90ms ease, box-shadow 90ms ease, scale 90ms ease;
 }
 
 .signal-cluster--far-right .signal-cluster__light,
