@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from './game/constants';
 import { createInitialState, startGame, updateGame } from './game/logic';
 import { useManualControls } from './hooks/useManualControls';
@@ -7,6 +7,10 @@ import { useMicrophoneControls } from './hooks/useMicrophoneControls';
 import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
 
 type ControlMode = 'voice' | 'manual';
+
+const ThreeGameWorld = lazy(() =>
+  import('./components/ThreeGameWorld').then((module) => ({ default: module.ThreeGameWorld })),
+);
 
 const axisLabel = (axis: Axis) => (axis === 'northSouth' ? 'North–South' : 'East–West');
 const axisShortLabel = (axis: Axis) => (axis === 'northSouth' ? 'N · S' : 'E · W');
@@ -395,7 +399,21 @@ function App() {
               <span className="objective-strip__queue">{currentQueue} vehicles in route</span>
             </div>
 
-            <div className="street-stage">
+            <div className="street-stage street-stage--3d">
+              <Suspense fallback={<div className="three-world-loading">Building Juniper Junction…</div>}>
+                <ThreeGameWorld
+                  vehicles={game.vehicles}
+                  pedestrians={game.pedestrians}
+                  activeAxis={game.activeAxis}
+                  congestion={game.congestion}
+                  emergencyStop={game.emergencyStop}
+                  boostTimer={game.boostTimer}
+                  dangerFlash={game.dangerFlash}
+                  delightFlash={game.delightFlash}
+                  phase={game.phase}
+                />
+              </Suspense>
+              {false && <div className="legacy-world" aria-hidden="true">
               <img className="game-world-art" src="/images/juniper-junction-world.png" alt="" aria-hidden="true" decoding="async" />
               <div className="world-lighting" aria-hidden="true" />
               <div className="ambient-particles" aria-hidden="true">
@@ -511,6 +529,7 @@ function App() {
                   <span className={`pedestrian__body pedestrian__body--${pedestrianClass(pedestrian.species)}`} />
                 </div>
               ))}
+              </div>}
             </div>
 
             <aside className="control-dock" aria-label="Traffic controls">
