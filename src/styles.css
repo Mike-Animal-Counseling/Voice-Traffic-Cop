@@ -2250,8 +2250,8 @@ kbd {
   width: 6.2rem;
   height: 10.3rem;
 }
-.signal-cluster--near-left { left: 27.5%; top: 49%; }
-.signal-cluster--near-right { left: 64.1%; top: 49%; }
+.signal-cluster--near-left { left: 32.2%; top: 42%; }
+.signal-cluster--near-right { left: 59.3%; top: 42%; }
 
 .signal-cluster__body {
   position: absolute;
