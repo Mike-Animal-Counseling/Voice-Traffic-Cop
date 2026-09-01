@@ -560,55 +560,40 @@ function App() {
               <TrafficSignal position="near-left" state={signalStateForAxis('eastWest')} />
               <TrafficSignal position="near-right" state={signalStateForAxis('northSouth')} />
 
-              {game.vehicles.map((vehicle) => {
-                const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
-                const braking = vehicle.acceleration < -18;
-                const boosted = vehicle.axis === game.activeAxis && game.signalPhase === 'green' && game.boostTimer > 0.5 && vehicle.speed > 25;
-                const mood = game.congestion > 70 ? '!' : vehicle.id % 2 === 0 ? '…' : '♪';
+              <div className="vehicle-layer">
+                {game.vehicles.map((vehicle) => {
+                  const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
+                  const braking = vehicle.acceleration < -18;
+                  const boosted = vehicle.axis === game.activeAxis && game.signalPhase === 'green' && game.boostTimer > 0.5 && vehicle.speed > 25;
+                  const mood = game.congestion > 70 ? '!' : vehicle.id % 2 === 0 ? '…' : '♪';
 
-                return (
-                  <div
-                    className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''} ${vehicle.speed > 7 ? 'vehicle--moving' : ''} ${waiting ? 'vehicle--waiting' : ''} ${braking ? 'vehicle--braking' : ''} ${boosted ? 'vehicle--boosted' : ''}`}
-                    style={vehicleStyle(vehicle)}
-                    key={vehicle.id}
-                    aria-hidden="true"
-                  >
-                    <div className="vehicle__rig">
-                      <span className="vehicle__ground-shadow" />
-                      <span className="vehicle__speed-trail"><i /><i /></span>
-                      <span className="vehicle__exhaust"><i /><i /><i /></span>
-                      <img
-                        className="vehicle__sprite"
-                        src={`/images/vehicles/${vehicle.kind}-top.webp`}
-                        alt=""
-                        draggable={false}
-                        decoding="async"
-                      />
-                      <span className="vehicle__headlight vehicle__headlight--one" />
-                      <span className="vehicle__headlight vehicle__headlight--two" />
-                      <span className="vehicle__brake-light vehicle__brake-light--one" />
-                      <span className="vehicle__brake-light vehicle__brake-light--two" />
+                  return (
+                    <div
+                      className={`vehicle vehicle--${vehicle.kind} ${vehicle.axis === game.activeAxis ? 'vehicle--favored' : ''} ${vehicle.speed > 7 ? 'vehicle--moving' : ''} ${waiting ? 'vehicle--waiting' : ''} ${braking ? 'vehicle--braking' : ''} ${boosted ? 'vehicle--boosted' : ''}`}
+                      style={vehicleStyle(vehicle)}
+                      key={vehicle.id}
+                      aria-hidden="true"
+                    >
+                      <div className="vehicle__rig">
+                        <span className="vehicle__ground-shadow" />
+                        <span className="vehicle__speed-trail"><i /><i /></span>
+                        <span className="vehicle__exhaust"><i /><i /><i /></span>
+                        <img
+                          className="vehicle__sprite"
+                          src={`/images/vehicles/${vehicle.kind}-top.webp`}
+                          alt=""
+                          draggable={false}
+                          decoding="async"
+                        />
+                        <span className="vehicle__headlight vehicle__headlight--one" />
+                        <span className="vehicle__headlight vehicle__headlight--two" />
+                        <span className="vehicle__brake-light vehicle__brake-light--one" />
+                        <span className="vehicle__brake-light vehicle__brake-light--two" />
+                      </div>
+                      {waiting && <span className="vehicle__mood">{mood}</span>}
                     </div>
-                    {waiting && <span className="vehicle__mood">{mood}</span>}
-                  </div>
-                );
-              })}
-
-              <div className="foreground-occlusion" aria-hidden="true">
-                <img
-                  className="foreground-occlusion__image foreground-occlusion__image--left"
-                  src="/images/juniper-junction-world-no-signals-v2.png"
-                  alt=""
-                  draggable={false}
-                  decoding="async"
-                />
-                <img
-                  className="foreground-occlusion__image foreground-occlusion__image--right"
-                  src="/images/juniper-junction-world-no-signals-v2.png"
-                  alt=""
-                  draggable={false}
-                  decoding="async"
-                />
+                  );
+                })}
               </div>
             </div>
 
