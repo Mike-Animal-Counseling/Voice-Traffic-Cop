@@ -30,27 +30,15 @@ const getStoredBest = () => {
 const preventNativeDrag = (event: React.DragEvent<HTMLElement>) => event.preventDefault();
 
 const vehicleStyle = (vehicle: Vehicle) => {
-  const axisCenter = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
-  const centerDelta = vehicle.position - axisCenter;
-  const distanceFromCenter = Math.abs(centerDelta);
-  const routeProgress = Math.max(0, Math.min(1, 1 - distanceFromCenter / 205));
-  const smoothRouteProgress = routeProgress * routeProgress * (3 - 2 * routeProgress);
-  const laneSide = vehicle.laneOffset < 0 ? -1 : 1;
-  const routedLaneOffset = vehicle.laneOffset + laneSide * 64 * smoothRouteProgress;
-  const routeSlope =
-    centerDelta === 0
-      ? 0
-      : laneSide * 64 * (-Math.sign(centerDelta) / 205) * 6 * routeProgress * (1 - routeProgress);
-  const steeringAngle = Math.atan(routeSlope) * (180 / Math.PI) * (vehicle.axis === 'northSouth' ? -1 : 1);
   const centerX =
     vehicle.direction === 'northbound' || vehicle.direction === 'southbound'
-      ? CENTER_X + routedLaneOffset
+      ? CENTER_X + vehicle.laneOffset
       : vehicle.position;
   const centerY =
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
-      ? CENTER_Y + routedLaneOffset
+      ? CENTER_Y + vehicle.laneOffset
       : vehicle.position;
-  const rigSize = vehicle.length * 0.84;
+  const rigSize = vehicle.length * 0.45;
 
   const baseRotation =
     vehicle.direction === 'northbound'
@@ -61,7 +49,7 @@ const vehicleStyle = (vehicle: Vehicle) => {
           ? -90
           : 90;
 
-  const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + routedLaneOffset;
+  const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + vehicle.laneOffset;
   const perspectiveScale = Math.max(0.86, Math.min(1.12, 0.86 + (screenY / WORLD_HEIGHT) * 0.26));
   const accelerationTilt = Math.max(-3.5, Math.min(3.5, -vehicle.acceleration * 0.08));
   const speedLevel = Math.max(0, Math.min(1, vehicle.speed / 88));
@@ -72,7 +60,7 @@ const vehicleStyle = (vehicle: Vehicle) => {
     width: `${((rigSize / WORLD_WIDTH) * 100).toFixed(3)}%`,
     aspectRatio: '1',
     zIndex: 12 + Math.round((screenY / WORLD_HEIGHT) * 8),
-    '--vehicle-rotation': `${(baseRotation + steeringAngle).toFixed(2)}deg`,
+    '--vehicle-rotation': `${baseRotation}deg`,
     '--vehicle-scale': perspectiveScale.toFixed(3),
     '--accel-tilt': `${accelerationTilt.toFixed(2)}deg`,
     '--speed-level': speedLevel.toFixed(3),
