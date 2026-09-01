@@ -2296,16 +2296,30 @@ kbd {
   transform-origin: center bottom;
 }
 
-.signal-cluster--far-left { left: 37.4%; top: 26.1%; }
-.signal-cluster--far-right { left: 56.58%; top: 26.1%; }
+.signal-cluster::after {
+  position: absolute;
+  left: 50%;
+  bottom: 3.2%;
+  z-index: -1;
+  width: 34%;
+  height: 5.5%;
+  border-radius: 50%;
+  background: rgba(48, 34, 24, 0.34);
+  filter: blur(0.22rem);
+  transform: translateX(-50%);
+  content: '';
+}
+
+.signal-cluster--far-left { left: 35.2%; top: 22.3%; }
+.signal-cluster--far-right { left: 58.8%; top: 22.3%; }
 .signal-cluster--near-left,
 .signal-cluster--near-right {
   z-index: 22;
   width: 6.2rem;
   height: 10.3rem;
 }
-.signal-cluster--near-left { left: 30.08%; top: 43.9%; }
-.signal-cluster--near-right { left: 61.5%; top: 43.9%; }
+.signal-cluster--near-left { left: 28.2%; top: 48.1%; }
+.signal-cluster--near-right { left: 63.4%; top: 48.1%; }
 
 .signal-cluster__body {
   position: absolute;
