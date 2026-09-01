@@ -2310,16 +2310,16 @@ kbd {
   content: '';
 }
 
-.signal-cluster--far-left { left: 35.2%; top: 22.3%; }
-.signal-cluster--far-right { left: 58.8%; top: 22.3%; }
+.signal-cluster--far-left { left: 34.6%; top: 21.5%; }
+.signal-cluster--far-right { left: 59.4%; top: 21.5%; }
 .signal-cluster--near-left,
 .signal-cluster--near-right {
   z-index: 22;
   width: 6.2rem;
   height: 10.3rem;
 }
-.signal-cluster--near-left { left: 28.2%; top: 48.1%; }
-.signal-cluster--near-right { left: 63.4%; top: 48.1%; }
+.signal-cluster--near-left { left: 27.5%; top: 49%; }
+.signal-cluster--near-right { left: 64.1%; top: 49%; }
 
 .signal-cluster__body {
   position: absolute;
