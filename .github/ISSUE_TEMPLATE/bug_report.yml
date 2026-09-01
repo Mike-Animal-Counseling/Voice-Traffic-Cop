@@ -1,0 +1,64 @@
+name: Bug report
+description: Report a reproducible gameplay, visual, audio, or accessibility problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Juniper Junction. Please do not attach microphone recordings or private data.
+  - type: input
+    id: summary
+    attributes:
+      label: What happened?
+      placeholder: Briefly describe the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the game
+        2. Choose ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: control-mode
+    attributes:
+      label: Control mode
+      options:
+        - Keyboard / touch
+        - Voice
+        - Both
+        - Not applicable
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 140 on Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot or additional context
+      description: Screenshots are welcome. Remove personal data before uploading.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I did not include microphone recordings, credentials, or private data.
+          required: true
