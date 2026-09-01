@@ -10,6 +10,11 @@ import type { Axis, GameState, Vehicle } from './game/types';
 type ControlMode = 'voice' | 'manual';
 type PipPose = 'idle' | 'wave' | 'jam' | 'stop' | 'cheer';
 
+const HORIZONTAL_ROAD_MOUTH_LEFT = 245;
+const HORIZONTAL_ROAD_MOUTH_RIGHT = 945;
+const HORIZONTAL_MOOD_LEFT = 320;
+const HORIZONTAL_MOOD_RIGHT = 880;
+
 const axisLabel = (axis: Axis) => (axis === 'northSouth' ? 'North–South' : 'East–West');
 const axisShortLabel = (axis: Axis) => (axis === 'northSouth' ? 'N · S' : 'E · W');
 
@@ -562,10 +567,19 @@ function App() {
 
               <div className="vehicle-layer">
                 {game.vehicles.map((vehicle) => {
+                  const isClearOfSideBuildings =
+                    vehicle.axis === 'northSouth' ||
+                    (vehicle.position >= HORIZONTAL_ROAD_MOUTH_LEFT && vehicle.position <= HORIZONTAL_ROAD_MOUTH_RIGHT);
+                  if (!isClearOfSideBuildings) return null;
+
                   const waiting = vehicle.speed < 7 && vehicle.waitingTime > 0.6;
                   const braking = vehicle.acceleration < -18;
                   const boosted = vehicle.axis === game.activeAxis && game.signalPhase === 'green' && game.boostTimer > 0.5 && vehicle.speed > 25;
                   const mood = game.congestion > 70 ? '!' : vehicle.id % 2 === 0 ? '…' : '♪';
+                  const showMood =
+                    waiting &&
+                    (vehicle.axis === 'northSouth' ||
+                      (vehicle.position >= HORIZONTAL_MOOD_LEFT && vehicle.position <= HORIZONTAL_MOOD_RIGHT));
 
                   return (
                     <div
@@ -590,7 +604,7 @@ function App() {
                         <span className="vehicle__brake-light vehicle__brake-light--one" />
                         <span className="vehicle__brake-light vehicle__brake-light--two" />
                       </div>
-                      {waiting && <span className="vehicle__mood">{mood}</span>}
+                      {showMood && <span className="vehicle__mood">{mood}</span>}
                     </div>
                   );
                 })}
