@@ -27,6 +27,8 @@ const getStoredBest = () => {
   }
 };
 
+const preventNativeDrag = (event: React.DragEvent<HTMLElement>) => event.preventDefault();
+
 const vehicleStyle = (vehicle: Vehicle) => {
   const axisCenter = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
   const centerDelta = vehicle.position - axisCenter;
@@ -48,7 +50,7 @@ const vehicleStyle = (vehicle: Vehicle) => {
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
       ? CENTER_Y + routedLaneOffset
       : vehicle.position;
-  const rigSize = vehicle.length;
+  const rigSize = vehicle.length * 0.84;
 
   const baseRotation =
     vehicle.direction === 'northbound'
@@ -101,6 +103,7 @@ const TrafficSignal = ({ position, state }: TrafficSignalProps) => (
       className="signal-cluster__body"
       src={`/images/signals/juniper-signal-${state}-v3.png`}
       alt=""
+      draggable={false}
       decoding="async"
     />
   </div>
@@ -141,7 +144,7 @@ interface TitleScreenProps {
 }
 
 const TitleScreen = ({ highScore, showHelp, onVoiceStart, onManualStart, onOpenHelp, onCloseHelp }: TitleScreenProps) => (
-  <main className="title-page">
+  <main className="title-page" onDragStart={preventNativeDrag}>
     <div className="title-page__glow title-page__glow--one" />
     <div className="title-page__glow title-page__glow--two" />
     <div className="title-layout">
@@ -177,7 +180,7 @@ const TitleScreen = ({ highScore, showHelp, onVoiceStart, onManualStart, onOpenH
       </section>
 
       <section className="intro-art" aria-label="Pip directing traffic in Juniper Junction">
-        <img src="/images/voice-traffic-cop-hero.png" alt="Pip the hedgehog directing colorful cars with glowing sound waves" decoding="async" fetchPriority="high" />
+        <img src="/images/voice-traffic-cop-hero.png" alt="Pip the hedgehog directing colorful cars with glowing sound waves" draggable={false} decoding="async" fetchPriority="high" />
         <div className="art-vignette" />
         <div className="art-caption">
           <span className="live-dot" />
@@ -428,7 +431,7 @@ function App() {
   });
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" onDragStart={preventNativeDrag}>
       <div className="scene">
         <div className="scene-frame">
           <div
@@ -509,7 +512,7 @@ function App() {
             </div>
 
             <div className="street-stage">
-              <img className="game-world-art" src="/images/juniper-junction-world-no-signals-v2.png" alt="" aria-hidden="true" decoding="async" />
+              <img className="game-world-art" src="/images/juniper-junction-world-no-signals-v2.png" alt="" aria-hidden="true" draggable={false} decoding="async" />
               <div className="world-lighting" aria-hidden="true" />
               <div className="ambient-particles" aria-hidden="true">
                 {new Array(14).fill(null).map((_, index) => <i key={index} />)}
@@ -564,6 +567,7 @@ function App() {
                       className={`pip-avatar__pose pip-avatar__pose--${pipPose}`}
                       src={`/images/pip/pip-${pipPose}-v2.png`}
                       alt="Pip Bristle directing the intersection"
+                      draggable={false}
                       decoding="async"
                     />
                   </div>

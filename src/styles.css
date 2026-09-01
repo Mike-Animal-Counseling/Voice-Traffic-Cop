@@ -20,14 +20,30 @@ body,
 
 body {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 button {
   font: inherit;
 }
 
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.app-shell,
+.title-page {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .app-shell {
   min-height: 100vh;
+  cursor: default;
+  touch-action: none;
 }
 
 .scene {
@@ -1246,8 +1262,8 @@ button:focus-visible {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 6.8rem;
-  height: 6.8rem;
+  width: 5.7rem;
+  height: 5.7rem;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -2199,8 +2215,8 @@ kbd {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 6.4rem;
-  height: 6.4rem;
+  width: 5.2rem;
+  height: 5.2rem;
   overflow: hidden;
   transform: translate(-50%, -47%);
   border: 0.24rem solid rgba(255, 228, 159, 0.9);
