@@ -2165,15 +2165,15 @@ kbd {
   filter: drop-shadow(0 0 11px rgba(123, 255, 197, 0.8));
 }
 
-.intersection-center { z-index: 9; pointer-events: none; }
+.intersection-center { z-index: 24; pointer-events: none; }
 .intersection-center .roundabout-bloom { opacity: 0; }
 
 .pip-avatar {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 7.4rem;
-  height: 7.4rem;
+  width: 7rem;
+  height: 7rem;
   overflow: hidden;
   transform: translate(-50%, -47%);
   border: 0.24rem solid rgba(255, 228, 159, 0.9);

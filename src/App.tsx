@@ -4,6 +4,7 @@ import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from '.
 import { createInitialState, startGame, updateGame } from './game/logic';
 import { useManualControls } from './hooks/useManualControls';
 import { useMicrophoneControls } from './hooks/useMicrophoneControls';
+import { useTownMusic } from './hooks/useTownMusic';
 import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
 
 type ControlMode = 'voice' | 'manual';
@@ -27,26 +28,38 @@ const getStoredBest = () => {
 };
 
 const vehicleStyle = (vehicle: Vehicle) => {
+  const axisCenter = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
+  const centerDelta = vehicle.position - axisCenter;
+  const distanceFromCenter = Math.abs(centerDelta);
+  const routeProgress = Math.max(0, Math.min(1, 1 - distanceFromCenter / 190));
+  const smoothRouteProgress = routeProgress * routeProgress * (3 - 2 * routeProgress);
+  const laneSide = vehicle.laneOffset < 0 ? -1 : 1;
+  const routedLaneOffset = vehicle.laneOffset + laneSide * 52 * smoothRouteProgress;
+  const routeSlope =
+    centerDelta === 0
+      ? 0
+      : laneSide * 52 * (-Math.sign(centerDelta) / 190) * 6 * routeProgress * (1 - routeProgress);
+  const steeringAngle = Math.atan(routeSlope) * (180 / Math.PI) * (vehicle.axis === 'northSouth' ? -1 : 1);
   const centerX =
     vehicle.direction === 'northbound' || vehicle.direction === 'southbound'
-      ? CENTER_X + vehicle.laneOffset
+      ? CENTER_X + routedLaneOffset
       : vehicle.position;
   const centerY =
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
-      ? CENTER_Y + vehicle.laneOffset
+      ? CENTER_Y + routedLaneOffset
       : vehicle.position;
   const rigSize = vehicle.length * 1.08;
 
-  const rotation =
+  const baseRotation =
     vehicle.direction === 'northbound'
-      ? '180deg'
+      ? 180
       : vehicle.direction === 'southbound'
-        ? '0deg'
+        ? 0
         : vehicle.direction === 'eastbound'
-          ? '-90deg'
-          : '90deg';
+          ? -90
+          : 90;
 
-  const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + vehicle.laneOffset;
+  const screenY = vehicle.axis === 'northSouth' ? vehicle.position : CENTER_Y + routedLaneOffset;
   const perspectiveScale = Math.max(0.86, Math.min(1.12, 0.86 + (screenY / WORLD_HEIGHT) * 0.26));
   const accelerationTilt = Math.max(-3.5, Math.min(3.5, -vehicle.acceleration * 0.08));
   const speedLevel = Math.max(0, Math.min(1, vehicle.speed / 88));
@@ -57,7 +70,7 @@ const vehicleStyle = (vehicle: Vehicle) => {
     width: `${((rigSize / WORLD_WIDTH) * 100).toFixed(3)}%`,
     aspectRatio: '1',
     zIndex: 12 + Math.round((screenY / WORLD_HEIGHT) * 8),
-    '--vehicle-rotation': rotation,
+    '--vehicle-rotation': `${(baseRotation + steeringAngle).toFixed(2)}deg`,
     '--vehicle-scale': perspectiveScale.toFixed(3),
     '--accel-tilt': `${accelerationTilt.toFixed(2)}deg`,
     '--speed-level': speedLevel.toFixed(3),
@@ -192,6 +205,7 @@ function App() {
     stopMonitoring,
     errorMessage,
   } = useMicrophoneControls();
+  const { play: playTownMusic, pause: pauseTownMusic, stop: stopTownMusic } = useTownMusic();
   const manual = useManualControls();
   const lastFrameRef = useRef<number | null>(null);
   const baselineBestRef = useRef(highScore);
@@ -282,6 +296,12 @@ function App() {
   useEffect(() => () => stopMonitoring(), [stopMonitoring]);
 
   useEffect(() => {
+    if (game.phase === 'running') playTownMusic();
+    else if (game.phase === 'paused') pauseTownMusic();
+    else stopTownMusic();
+  }, [game.phase, pauseTownMusic, playTownMusic, stopTownMusic]);
+
+  useEffect(() => {
     if (game.phase !== 'running') {
       setPipIdlePose('idle');
       return undefined;
@@ -300,6 +320,8 @@ function App() {
   }, [game.phase]);
 
   const startRun = async (mode: ControlMode) => {
+    // Start from the button gesture so browsers allow Web Audio playback.
+    playTownMusic();
     let selectedMode = mode;
     if (mode === 'voice') {
       const permissionGranted = await requestPermission();
@@ -320,6 +342,7 @@ function App() {
   };
 
   const restart = () => {
+    playTownMusic();
     baselineBestRef.current = highScore;
     lastFrameRef.current = performance.now();
     setGame(startGame());
