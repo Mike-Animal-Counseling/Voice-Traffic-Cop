@@ -595,6 +595,23 @@ function App() {
                   );
                 })}
               </div>
+
+              <div className="building-occlusion" aria-hidden="true">
+                <img
+                  className="building-occlusion__image building-occlusion__image--left"
+                  src="/images/juniper-junction-world-no-signals-v2.png"
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                />
+                <img
+                  className="building-occlusion__image building-occlusion__image--right"
+                  src="/images/juniper-junction-world-no-signals-v2.png"
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                />
+              </div>
             </div>
 
             <aside className="control-dock" aria-label="Traffic controls">
