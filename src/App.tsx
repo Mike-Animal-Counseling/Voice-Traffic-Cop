@@ -11,7 +11,7 @@ type ControlMode = 'voice' | 'manual';
 type PipPose = 'idle' | 'wave' | 'jam' | 'stop' | 'cheer';
 
 const HORIZONTAL_ROAD_MOUTH_LEFT = 245;
-const HORIZONTAL_ROAD_MOUTH_RIGHT = 945;
+const HORIZONTAL_ROAD_MOUTH_RIGHT = 925;
 const HORIZONTAL_MOOD_LEFT = 320;
 const HORIZONTAL_MOOD_RIGHT = 880;
 
@@ -613,13 +613,6 @@ function App() {
               <div className="building-occlusion" aria-hidden="true">
                 <img
                   className="building-occlusion__image building-occlusion__image--left"
-                  src="/images/juniper-junction-world-no-signals-v2.png"
-                  alt=""
-                  draggable={false}
-                  decoding="async"
-                />
-                <img
-                  className="building-occlusion__image building-occlusion__image--right"
                   src="/images/juniper-junction-world-no-signals-v2.png"
                   alt=""
                   draggable={false}
