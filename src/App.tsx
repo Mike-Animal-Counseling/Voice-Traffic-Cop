@@ -4,6 +4,7 @@ import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from '.
 import { createInitialState, startGame, updateGame } from './game/logic';
 import { useManualControls } from './hooks/useManualControls';
 import { useMicrophoneControls } from './hooks/useMicrophoneControls';
+import { usePedestrianAtlas } from './hooks/usePedestrianAtlas';
 import { useTownMusic } from './hooks/useTownMusic';
 import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
 
@@ -209,6 +210,7 @@ function App() {
     stopMonitoring,
     errorMessage,
   } = useMicrophoneControls();
+  const pedestrianAtlas = usePedestrianAtlas();
   const { play: playTownMusic, pause: pauseTownMusic, stop: stopTownMusic } = useTownMusic();
   const manual = useManualControls();
   const lastFrameRef = useRef<number | null>(null);
@@ -607,16 +609,39 @@ function App() {
               {game.pedestrians.map((pedestrian) => (
                 <div
                   key={pedestrian.id}
-                  className={`pedestrian pedestrian--${pedestrian.side}`}
+                  className={`pedestrian pedestrian--${pedestrian.side} ${game.dangerFlash > 0.2 || game.congestion > 72 ? 'pedestrian--alert' : ''}`}
                   style={{
                     left: `${(pedestrian.x / WORLD_WIDTH) * 100}%`,
                     transform: `translateY(${Math.sin(pedestrian.bob) * 4}px)`,
                   }}
+                  aria-hidden="true"
                 >
                   <span className="pedestrian__shadow" />
-                  <span className={`pedestrian__body pedestrian__body--${pedestrianClass(pedestrian.species)}`} />
+                  {pedestrianAtlas && (
+                    <span
+                      className={`pedestrian__sprite pedestrian__sprite--${pedestrianClass(pedestrian.species)}`}
+                      style={{ backgroundImage: `url("${pedestrianAtlas}")` }}
+                    />
+                  )}
                 </div>
               ))}
+
+              <div className="foreground-occlusion" aria-hidden="true">
+                <img
+                  className="foreground-occlusion__image foreground-occlusion__image--left"
+                  src="/images/juniper-junction-world-no-signals-v2.png"
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                />
+                <img
+                  className="foreground-occlusion__image foreground-occlusion__image--right"
+                  src="/images/juniper-junction-world-no-signals-v2.png"
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                />
+              </div>
             </div>
 
             <aside className="control-dock" aria-label="Traffic controls">

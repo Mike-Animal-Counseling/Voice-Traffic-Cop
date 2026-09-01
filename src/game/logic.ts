@@ -290,7 +290,13 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     spawnTimerNS: previous.spawnTimerNS - delta,
     spawnTimerEW: previous.spawnTimerEW - delta,
     vehicles: previous.vehicles.map((vehicle) => ({ ...vehicle })),
-    pedestrians: previous.pedestrians.map((pedestrian) => ({ ...pedestrian, bob: pedestrian.bob + delta * (0.7 + pedestrian.pace * 0.02) })),
+    pedestrians: previous.pedestrians.map((pedestrian) => {
+      const direction = pedestrian.side === 'top' ? 1 : -1;
+      let x = pedestrian.x + pedestrian.pace * direction * delta;
+      if (x > WORLD_WIDTH + 70) x = -70;
+      if (x < -70) x = WORLD_WIDTH + 70;
+      return { ...pedestrian, x, bob: pedestrian.bob + delta * (0.7 + pedestrian.pace * 0.02) };
+    }),
   };
 
   if (input.emergencyStop) {

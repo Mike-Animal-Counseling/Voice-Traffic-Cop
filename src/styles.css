@@ -526,8 +526,8 @@ img {
   z-index: 2;
 }
 
-.pedestrian--top { top: 28%; }
-.pedestrian--bottom { top: 66%; }
+.pedestrian--top { top: 37%; }
+.pedestrian--bottom { top: 69%; }
 
 .pedestrian__shadow {
   position: absolute;
@@ -987,6 +987,40 @@ img {
   .card--gameover h2 {
     font-size: clamp(1.8rem, 5vw, 2.6rem);
   }
+}
+
+.pedestrian__sprite {
+  position: absolute;
+  left: 50%;
+  bottom: 0.25rem;
+  width: 3.4rem;
+  height: 3.4rem;
+  background-repeat: no-repeat;
+  background-size: 300% 200%;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+  animation: pedestrian-step 0.72s ease-in-out infinite alternate;
+}
+
+.pedestrian__sprite--duck { background-position: 0 0; }
+.pedestrian__sprite--ferret { background-position: 50% 0; }
+.pedestrian__sprite--tortoise { background-position: 100% 0; }
+.pedestrian__sprite--otter { background-position: 0 100%; }
+.pedestrian__sprite--gazelle { background-position: 50% 100%; }
+.pedestrian__sprite--pigeon { background-position: 100% 100%; }
+
+.pedestrian--top .pedestrian__sprite { scale: 0.82; }
+.pedestrian--bottom .pedestrian__sprite { scale: -1.02 1.02; }
+.pedestrian--alert .pedestrian__sprite { animation: pedestrian-startle 0.34s ease-in-out infinite alternate; }
+
+@keyframes pedestrian-step {
+  from { rotate: -1.8deg; translate: 0 0; }
+  to { rotate: 1.8deg; translate: 0 -0.18rem; }
+}
+
+@keyframes pedestrian-startle {
+  from { rotate: -4deg; translate: 0 0; }
+  to { rotate: 4deg; translate: 0 -0.36rem; }
 }
 
 /* Product refresh: premium shell, onboarding, controls, and feedback */
@@ -2102,6 +2136,33 @@ kbd {
   object-position: center;
   filter: saturate(1.05) contrast(1.02) brightness(0.96);
   transform: scale(1.008);
+}
+
+.foreground-occlusion {
+  position: absolute;
+  inset: 0;
+  z-index: 21;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.foreground-occlusion__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.05) contrast(1.02) brightness(0.96);
+  transform: scale(1.008);
+}
+
+.foreground-occlusion__image--left {
+  clip-path: polygon(0 28%, 13% 28%, 18% 43%, 19% 58%, 24% 67%, 31% 75%, 32% 100%, 0 100%);
+}
+
+.foreground-occlusion__image--right {
+  clip-path: polygon(100% 27%, 88% 27%, 82% 38%, 81% 52%, 78% 60%, 76% 75%, 75% 100%, 100% 100%);
 }
 
 .street-stage {
