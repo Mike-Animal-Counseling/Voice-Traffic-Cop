@@ -519,101 +519,6 @@ img {
 .vehicle__wheel--front { right: 16%; }
 .vehicle__wheel--rear { left: 16%; }
 
-.pedestrian {
-  position: absolute;
-  width: 1.6rem;
-  height: 2.4rem;
-  z-index: 2;
-}
-
-.pedestrian--top { top: 37%; }
-.pedestrian--bottom { top: 69%; }
-
-.pedestrian__shadow {
-  position: absolute;
-  bottom: 0;
-  left: 0.2rem;
-  width: 1.2rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: rgba(53, 33, 23, 0.18);
-}
-
-.pedestrian__body {
-  position: absolute;
-  left: 0.25rem;
-  bottom: 0.35rem;
-  width: 1rem;
-  height: 1.5rem;
-  border-radius: 0.7rem 0.7rem 0.5rem 0.5rem;
-}
-
-.pedestrian__body::before,
-.pedestrian__body::after {
-  content: "";
-  position: absolute;
-}
-
-.pedestrian__body--duck { background: linear-gradient(180deg, #ffd864 0%, #ef9b26 100%); }
-.pedestrian__body--duck::before {
-  width: 0.8rem;
-  height: 0.8rem;
-  top: -0.45rem;
-  left: 0.1rem;
-  border-radius: 50%;
-  background: #ffd864;
-}
-
-.pedestrian__body--ferret { background: linear-gradient(180deg, #b8845d 0%, #784731 100%); }
-.pedestrian__body--ferret::before {
-  width: 0.82rem;
-  height: 0.85rem;
-  top: -0.48rem;
-  left: 0.09rem;
-  border-radius: 0.45rem;
-  background: #c9956b;
-}
-
-.pedestrian__body--tortoise { background: linear-gradient(180deg, #64855f 0%, #476044 100%); }
-.pedestrian__body--tortoise::before {
-  width: 0.86rem;
-  height: 0.76rem;
-  top: -0.38rem;
-  left: 0.07rem;
-  border-radius: 50%;
-  background: #92a775;
-}
-
-.pedestrian__body--otter { background: linear-gradient(180deg, #8d6d55 0%, #5b4033 100%); }
-.pedestrian__body--otter::before {
-  width: 0.8rem;
-  height: 0.82rem;
-  top: -0.46rem;
-  left: 0.12rem;
-  border-radius: 50%;
-  background: #9f7d62;
-}
-
-.pedestrian__body--gazelle { background: linear-gradient(180deg, #d9b07d 0%, #9f7147 100%); }
-.pedestrian__body--gazelle::before {
-  width: 0.78rem;
-  height: 0.82rem;
-  top: -0.47rem;
-  left: 0.11rem;
-  border-radius: 50%;
-  background: #e1c090;
-}
-
-.pedestrian__body--pigeon { background: linear-gradient(180deg, #90a1bc 0%, #60738f 100%); }
-.pedestrian__body--pigeon::before {
-  width: 0.84rem;
-  height: 0.84rem;
-  top: -0.46rem;
-  left: 0.08rem;
-  border-radius: 50%;
-  background: #b2c1d8;
-}
-
 .hud {
   position: absolute;
   left: 2rem;
@@ -987,40 +892,6 @@ img {
   .card--gameover h2 {
     font-size: clamp(1.8rem, 5vw, 2.6rem);
   }
-}
-
-.pedestrian__sprite {
-  position: absolute;
-  left: 50%;
-  bottom: 0.25rem;
-  width: 3.4rem;
-  height: 3.4rem;
-  background-repeat: no-repeat;
-  background-size: 300% 200%;
-  transform: translateX(-50%);
-  transform-origin: center bottom;
-  animation: pedestrian-step 0.72s ease-in-out infinite alternate;
-}
-
-.pedestrian__sprite--duck { background-position: 0 0; }
-.pedestrian__sprite--ferret { background-position: 50% 0; }
-.pedestrian__sprite--tortoise { background-position: 100% 0; }
-.pedestrian__sprite--otter { background-position: 0 100%; }
-.pedestrian__sprite--gazelle { background-position: 50% 100%; }
-.pedestrian__sprite--pigeon { background-position: 100% 100%; }
-
-.pedestrian--top .pedestrian__sprite { scale: 0.82; }
-.pedestrian--bottom .pedestrian__sprite { scale: -1.02 1.02; }
-.pedestrian--alert .pedestrian__sprite { animation: pedestrian-startle 0.34s ease-in-out infinite alternate; }
-
-@keyframes pedestrian-step {
-  from { rotate: -1.8deg; translate: 0 0; }
-  to { rotate: 1.8deg; translate: 0 -0.18rem; }
-}
-
-@keyframes pedestrian-startle {
-  from { rotate: -4deg; translate: 0 0; }
-  to { rotate: 4deg; translate: 0 -0.36rem; }
 }
 
 /* Product refresh: premium shell, onboarding, controls, and feedback */
@@ -2702,8 +2573,6 @@ kbd {
   from { opacity: 0.7; }
   to { opacity: 1; }
 }
-
-.pedestrian { z-index: 7; filter: drop-shadow(0 4px 4px rgba(41, 30, 22, 0.25)); }
 
 .orientation-hint { display: none; }
 

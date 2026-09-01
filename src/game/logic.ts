@@ -11,7 +11,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from './constants';
-import type { Axis, DifficultyTier, Direction, GameState, Pedestrian, Vehicle } from './types';
+import type { Axis, DifficultyTier, Direction, GameState, Vehicle } from './types';
 
 interface DifficultyConfig {
   tier: DifficultyTier;
@@ -80,18 +80,6 @@ const axisForDirection = (direction: Direction): Axis =>
   direction === 'northbound' || direction === 'southbound' ? 'northSouth' : 'eastWest';
 
 const randomFrom = <T,>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
-
-const createPedestrians = (): Pedestrian[] => {
-  const species: Pedestrian['species'][] = ['duck', 'ferret', 'tortoise', 'otter', 'gazelle', 'pigeon'];
-  return new Array(8).fill(null).map((_, index) => ({
-    id: index,
-    side: index % 2 === 0 ? 'top' : 'bottom',
-    species: randomFrom(species),
-    x: 120 + index * 145 + (index % 3) * 16,
-    pace: 14 + (index % 4) * 5,
-    bob: Math.random() * Math.PI * 2,
-  }));
-};
 
 const createVehicle = (id: number, direction: Direction): Vehicle => {
   const laneOffset = direction === 'northbound' || direction === 'eastbound' ? -34 : 34;
@@ -223,7 +211,6 @@ export const createInitialState = (): GameState => ({
   levelGoal: DIFFICULTY_STEPS[0].goal,
   justLeveledUp: false,
   vehicles: [],
-  pedestrians: createPedestrians(),
   score: 0,
   streak: 0,
   bestStreak: 0,
@@ -290,13 +277,6 @@ export const updateGame = (previous: GameState, input: { activeAxis: Axis; emerg
     spawnTimerNS: previous.spawnTimerNS - delta,
     spawnTimerEW: previous.spawnTimerEW - delta,
     vehicles: previous.vehicles.map((vehicle) => ({ ...vehicle })),
-    pedestrians: previous.pedestrians.map((pedestrian) => {
-      const direction = pedestrian.side === 'top' ? 1 : -1;
-      let x = pedestrian.x + pedestrian.pace * direction * delta;
-      if (x > WORLD_WIDTH + 70) x = -70;
-      if (x < -70) x = WORLD_WIDTH + 70;
-      return { ...pedestrian, x, bob: pedestrian.bob + delta * (0.7 + pedestrian.pace * 0.02) };
-    }),
   };
 
   if (input.emergencyStop) {

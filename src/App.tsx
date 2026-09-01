@@ -4,9 +4,8 @@ import { CENTER_X, CENTER_Y, MAX_CONGESTION, WORLD_HEIGHT, WORLD_WIDTH } from '.
 import { createInitialState, startGame, updateGame } from './game/logic';
 import { useManualControls } from './hooks/useManualControls';
 import { useMicrophoneControls } from './hooks/useMicrophoneControls';
-import { usePedestrianAtlas } from './hooks/usePedestrianAtlas';
 import { useTownMusic } from './hooks/useTownMusic';
-import type { Axis, GameState, Pedestrian, Vehicle } from './game/types';
+import type { Axis, GameState, Vehicle } from './game/types';
 
 type ControlMode = 'voice' | 'manual';
 type PipPose = 'idle' | 'wave' | 'jam' | 'stop' | 'cheer';
@@ -81,16 +80,6 @@ const vehicleStyle = (vehicle: Vehicle) => {
     '--wobble-delay': `${(-vehicle.wobbleSeed).toFixed(2)}s`,
   } as React.CSSProperties;
 };
-
-const pedestrianClass = (species: Pedestrian['species']) =>
-  ({
-    duck: 'duck',
-    ferret: 'ferret',
-    tortoise: 'tortoise',
-    otter: 'otter',
-    gazelle: 'gazelle',
-    pigeon: 'pigeon',
-  })[species];
 
 interface TrafficSignalProps {
   position: 'far-left' | 'far-right' | 'near-left' | 'near-right';
@@ -210,7 +199,6 @@ function App() {
     stopMonitoring,
     errorMessage,
   } = useMicrophoneControls();
-  const pedestrianAtlas = usePedestrianAtlas();
   const { play: playTownMusic, pause: pauseTownMusic, stop: stopTownMusic } = useTownMusic();
   const manual = useManualControls();
   const lastFrameRef = useRef<number | null>(null);
@@ -605,26 +593,6 @@ function App() {
                   </div>
                 );
               })}
-
-              {game.pedestrians.map((pedestrian) => (
-                <div
-                  key={pedestrian.id}
-                  className={`pedestrian pedestrian--${pedestrian.side} ${game.dangerFlash > 0.2 || game.congestion > 72 ? 'pedestrian--alert' : ''}`}
-                  style={{
-                    left: `${(pedestrian.x / WORLD_WIDTH) * 100}%`,
-                    transform: `translateY(${Math.sin(pedestrian.bob) * 4}px)`,
-                  }}
-                  aria-hidden="true"
-                >
-                  <span className="pedestrian__shadow" />
-                  {pedestrianAtlas && (
-                    <span
-                      className={`pedestrian__sprite pedestrian__sprite--${pedestrianClass(pedestrian.species)}`}
-                      style={{ backgroundImage: `url("${pedestrianAtlas}")` }}
-                    />
-                  )}
-                </div>
-              ))}
 
               <div className="foreground-occlusion" aria-hidden="true">
                 <img

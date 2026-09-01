@@ -26,15 +26,6 @@ export interface Vehicle {
   wobbleSeed: number;
 }
 
-export interface Pedestrian {
-  id: number;
-  side: 'top' | 'bottom';
-  species: 'duck' | 'ferret' | 'tortoise' | 'otter' | 'gazelle' | 'pigeon';
-  x: number;
-  pace: number;
-  bob: number;
-}
-
 export interface LaneControl {
   activeAxis: Axis;
   emergencyStop: boolean;
@@ -59,7 +50,6 @@ export interface GameState {
   levelGoal: number;
   justLeveledUp: boolean;
   vehicles: Vehicle[];
-  pedestrians: Pedestrian[];
   score: number;
   streak: number;
   bestStreak: number;
