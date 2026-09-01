@@ -46,7 +46,7 @@ The first shift starts gently. Traffic gets busier as your score unlocks **Rooki
 ## What makes it different
 
 - **Your voice is the controller** — pitch selects a lane, volume triggers an emergency stop, and tone stability creates a boost.
-- **A tiny animated world** — colorful vehicles, animal pedestrians, neighborhood shops, traffic signals, and Pip all react in real time.
+- **A tiny animated world** — expressive vehicles, neighborhood shops, traffic signals, and Pip all react in real time.
 - **Designed to feel forgiving** — command smoothing, brief control holds, early-game grace, and gradual difficulty keep the game approachable.
 - **Private by design** — microphone samples stay inside the Web Audio pipeline on your device.
 - **Play your way** — switch between voice, keyboard, and touch controls during a shift.
@@ -55,7 +55,7 @@ The first shift starts gently. Traffic gets busier as your score unlocks **Rooki
 
 ## Play online
 
-Open **[voice-traffic-cop.vercel.app](https://voice-traffic-cop.vercel.app)**, allow microphone access, and select **Enable Mic & Start**.
+Open **[voice-traffic-cop.vercel.app](https://voice-traffic-cop.vercel.app)**, allow microphone access, and select **Play with voice**.
 
 Microphone access requires a secure context, so use the HTTPS deployment or `localhost` during development. Headphones can help prevent your speakers from being picked up by the microphone.
 
