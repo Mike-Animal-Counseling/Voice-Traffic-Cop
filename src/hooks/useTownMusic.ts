@@ -2,18 +2,20 @@ import { useCallback, useEffect, useRef } from 'react';
 
 const TEMPO = 112;
 const STEP_DURATION = 60 / TEMPO / 2;
-const MASTER_VOLUME = 0.032;
+const MASTER_VOLUME = 0.075;
 
 // A light, original pentatonic loop. Keeping it synthesized avoids another
 // download and lets the soundtrack pause instantly with the simulation.
 const MELODY: Array<number | null> = [
   659.25, 783.99, 880, 783.99,
-  659.25, 587.33, 523.25, null,
+  659.25, 587.33, 659.25, null,
   587.33, 659.25, 783.99, 659.25,
-  587.33, 523.25, 493.88, null,
+  587.33, 659.25, 587.33, null,
 ];
 
-const CHORD_ROOTS = [261.63, 220, 174.61, 196];
+// Keep the accompaniment below the microphone command range and the melody
+// above it, so speaker bleed cannot steer the traffic in voice mode.
+const CHORD_ROOTS = [65.41, 55, 43.65, 49];
 
 interface MusicEngine {
   context: AudioContext;
@@ -53,14 +55,14 @@ const scheduleTone = (
 const scheduleStep = (engine: MusicEngine) => {
   const melodyNote = MELODY[engine.step % MELODY.length];
   if (melodyNote) {
-    scheduleTone(engine, melodyNote, engine.nextStepAt, STEP_DURATION * 0.72, 0.115, 'triangle');
+    scheduleTone(engine, melodyNote, engine.nextStepAt, STEP_DURATION * 0.72, 0.18, 'triangle');
   }
 
   if (engine.step % 4 === 0) {
     const chordIndex = Math.floor(engine.step / 4) % CHORD_ROOTS.length;
     const root = CHORD_ROOTS[chordIndex];
-    scheduleTone(engine, root, engine.nextStepAt, STEP_DURATION * 2.8, 0.07, 'sine');
-    scheduleTone(engine, root * 1.5, engine.nextStepAt + 0.018, STEP_DURATION * 2.6, 0.035, 'sine');
+    scheduleTone(engine, root, engine.nextStepAt, STEP_DURATION * 2.8, 0.1, 'sine');
+    scheduleTone(engine, root * 1.5, engine.nextStepAt + 0.018, STEP_DURATION * 2.6, 0.05, 'sine');
   }
 
   engine.step += 1;

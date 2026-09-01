@@ -31,14 +31,14 @@ const vehicleStyle = (vehicle: Vehicle) => {
   const axisCenter = vehicle.axis === 'northSouth' ? CENTER_Y : CENTER_X;
   const centerDelta = vehicle.position - axisCenter;
   const distanceFromCenter = Math.abs(centerDelta);
-  const routeProgress = Math.max(0, Math.min(1, 1 - distanceFromCenter / 190));
+  const routeProgress = Math.max(0, Math.min(1, 1 - distanceFromCenter / 205));
   const smoothRouteProgress = routeProgress * routeProgress * (3 - 2 * routeProgress);
   const laneSide = vehicle.laneOffset < 0 ? -1 : 1;
-  const routedLaneOffset = vehicle.laneOffset + laneSide * 52 * smoothRouteProgress;
+  const routedLaneOffset = vehicle.laneOffset + laneSide * 64 * smoothRouteProgress;
   const routeSlope =
     centerDelta === 0
       ? 0
-      : laneSide * 52 * (-Math.sign(centerDelta) / 190) * 6 * routeProgress * (1 - routeProgress);
+      : laneSide * 64 * (-Math.sign(centerDelta) / 205) * 6 * routeProgress * (1 - routeProgress);
   const steeringAngle = Math.atan(routeSlope) * (180 / Math.PI) * (vehicle.axis === 'northSouth' ? -1 : 1);
   const centerX =
     vehicle.direction === 'northbound' || vehicle.direction === 'southbound'
@@ -48,7 +48,7 @@ const vehicleStyle = (vehicle: Vehicle) => {
     vehicle.direction === 'eastbound' || vehicle.direction === 'westbound'
       ? CENTER_Y + routedLaneOffset
       : vehicle.position;
-  const rigSize = vehicle.length * 1.08;
+  const rigSize = vehicle.length;
 
   const baseRotation =
     vehicle.direction === 'northbound'
@@ -198,6 +198,7 @@ function App() {
   const [highScore, setHighScore] = useState(getStoredBest);
   const [showHelp, setShowHelp] = useState(false);
   const [pipIdlePose, setPipIdlePose] = useState<PipPose>('idle');
+  const [musicEnabled, setMusicEnabled] = useState(true);
   const {
     snapshot,
     laneControl: microphoneControl,
@@ -296,10 +297,11 @@ function App() {
   useEffect(() => () => stopMonitoring(), [stopMonitoring]);
 
   useEffect(() => {
-    if (game.phase === 'running') playTownMusic();
+    if (game.phase === 'running' && musicEnabled) playTownMusic();
     else if (game.phase === 'paused') pauseTownMusic();
+    else if (game.phase === 'running') pauseTownMusic();
     else stopTownMusic();
-  }, [game.phase, pauseTownMusic, playTownMusic, stopTownMusic]);
+  }, [game.phase, musicEnabled, pauseTownMusic, playTownMusic, stopTownMusic]);
 
   useEffect(() => {
     if (game.phase !== 'running') {
@@ -321,7 +323,7 @@ function App() {
 
   const startRun = async (mode: ControlMode) => {
     // Start from the button gesture so browsers allow Web Audio playback.
-    playTownMusic();
+    if (musicEnabled) playTownMusic();
     let selectedMode = mode;
     if (mode === 'voice') {
       const permissionGranted = await requestPermission();
@@ -342,13 +344,24 @@ function App() {
   };
 
   const restart = () => {
-    playTownMusic();
+    if (musicEnabled) playTownMusic();
     baselineBestRef.current = highScore;
     lastFrameRef.current = performance.now();
     setGame(startGame());
   };
 
   const returnToTitle = () => setGame(createInitialState());
+
+  const toggleTownMusic = () => {
+    if (musicEnabled) {
+      setMusicEnabled(false);
+      pauseTownMusic();
+      return;
+    }
+
+    setMusicEnabled(true);
+    if (game.phase === 'running') playTownMusic();
+  };
 
   if (game.phase === 'title') {
     return (
@@ -468,9 +481,21 @@ function App() {
                   <strong>{highScore.toLocaleString()}</strong>
                 </div>
                 {isPlaying && (
-                  <button className="icon-button" type="button" onClick={togglePause} aria-label={game.phase === 'paused' ? 'Resume game' : 'Pause game'}>
-                    {game.phase === 'paused' ? '▶' : 'Ⅱ'}
-                  </button>
+                  <>
+                    <button
+                      className={`icon-button music-toggle ${musicEnabled ? 'music-toggle--on' : ''}`}
+                      type="button"
+                      onClick={toggleTownMusic}
+                      aria-label={musicEnabled ? 'Mute town music' : 'Play town music'}
+                      aria-pressed={musicEnabled}
+                      title={musicEnabled ? 'Town music on' : 'Town music off'}
+                    >
+                      <span aria-hidden="true">♪</span>
+                    </button>
+                    <button className="icon-button" type="button" onClick={togglePause} aria-label={game.phase === 'paused' ? 'Resume game' : 'Pause game'}>
+                      {game.phase === 'paused' ? '▶' : 'Ⅱ'}
+                    </button>
+                  </>
                 )}
               </div>
             </header>

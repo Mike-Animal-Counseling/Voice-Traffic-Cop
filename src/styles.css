@@ -1173,6 +1173,33 @@ button:focus-visible {
 
 .icon-button:hover { background: rgba(255, 255, 255, 0.17); }
 
+.music-toggle {
+  position: relative;
+  font-size: 1.05rem;
+  opacity: 0.55;
+}
+
+.music-toggle::after {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.34rem;
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 50%;
+  background: #80918c;
+  content: '';
+}
+
+.music-toggle--on {
+  color: #fff0a8;
+  opacity: 1;
+}
+
+.music-toggle--on::after {
+  background: #72f0bc;
+  box-shadow: 0 0 8px rgba(114, 240, 188, 0.8);
+}
+
 .objective-strip {
   position: absolute;
   top: 5.75rem;
@@ -2172,8 +2199,8 @@ kbd {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 7rem;
-  height: 7rem;
+  width: 6.4rem;
+  height: 6.4rem;
   overflow: hidden;
   transform: translate(-50%, -47%);
   border: 0.24rem solid rgba(255, 228, 159, 0.9);
