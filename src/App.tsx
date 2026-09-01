@@ -379,8 +379,6 @@ function App() {
     );
   }
 
-  const activeNS = game.activeAxis === 'northSouth' && game.signalPhase === 'green' && !game.emergencyStop;
-  const activeEW = game.activeAxis === 'eastWest' && game.signalPhase === 'green' && !game.emergencyStop;
   const signalStateForAxis = (axis: Axis): TrafficSignalProps['state'] => {
     if (game.emergencyStop || game.signalPhase === 'allRed' || game.activeAxis !== axis) return 'red';
     return game.signalPhase === 'yellow' ? 'amber' : 'green';
@@ -543,13 +541,6 @@ function App() {
                   <span className="bench" />
                 </div>
               </div>
-
-              <div className={`road road--vertical ${activeNS ? 'road--active' : ''}`} />
-              <div className={`road road--horizontal ${activeEW ? 'road--active' : ''}`} />
-              <div className={`crosswalk crosswalk--top ${activeEW ? 'crosswalk--go' : ''}`} />
-              <div className={`crosswalk crosswalk--bottom ${activeEW ? 'crosswalk--go' : ''}`} />
-              <div className={`crosswalk crosswalk--left ${activeNS ? 'crosswalk--go' : ''}`} />
-              <div className={`crosswalk crosswalk--right ${activeNS ? 'crosswalk--go' : ''}`} />
 
               <div className="intersection-center">
                 <div className="roundabout-bloom" />

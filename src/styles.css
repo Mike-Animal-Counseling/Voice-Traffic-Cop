@@ -2204,8 +2204,8 @@ kbd {
 }
 
 .street-stage .crosswalk--go {
-  opacity: 0.58;
-  filter: drop-shadow(0 0 11px rgba(123, 255, 197, 0.8));
+  opacity: 0.48;
+  filter: drop-shadow(0 0 9px rgba(255, 216, 129, 0.52));
 }
 
 .intersection-center { z-index: 24; pointer-events: none; }
@@ -2569,8 +2569,8 @@ kbd {
 }
 
 .voice-wave--boost i {
-  border-color: rgba(125, 255, 200, 0.72);
-  box-shadow: 0 0 20px rgba(125, 255, 200, 0.16);
+  border-color: rgba(255, 220, 126, 0.72);
+  box-shadow: 0 0 20px rgba(255, 220, 126, 0.14);
   animation-duration: 1.05s;
 }
 
