@@ -317,7 +317,7 @@ img {
 .intersection-center {
   position: absolute;
   left: calc(50% - 7rem);
-  top: calc(50% - 7rem);
+  top: calc(52.5% - 7rem);
   width: 14rem;
   height: 14rem;
   z-index: 3;
