@@ -2046,8 +2046,8 @@ kbd {
 
 .building-occlusion__image--right {
   clip-path: polygon(
-    100% 27%, 88% 27%, 86% 32%, 84% 38%, 83.5% 46%,
-    82.5% 53%, 80.5% 59%, 78% 63%, 75.8% 67%, 74.8% 72%,
+    100% 40%, 83.5% 40%, 81% 44%, 79% 48%, 77.5% 52%,
+    76% 56%, 74.8% 60%, 74% 64%, 75% 68%, 74.8% 72%,
     75% 100%, 100% 100%
   );
 }
@@ -2258,7 +2258,7 @@ kbd {
   content: '';
 }
 
-.signal-cluster--far-left { left: 34.6%; top: 21.5%; }
+.signal-cluster--far-left { left: 34%; top: 21.5%; }
 .signal-cluster--far-right { left: 59.4%; top: 21.5%; }
 .signal-cluster--near-left,
 .signal-cluster--near-right {
@@ -2266,7 +2266,7 @@ kbd {
   width: 6.2rem;
   height: 10.3rem;
 }
-.signal-cluster--near-left { left: 30.8%; top: 42%; }
+.signal-cluster--near-left { left: 30.2%; top: 42%; }
 .signal-cluster--near-right { left: 60.8%; top: 42%; }
 
 .signal-cluster__body {
