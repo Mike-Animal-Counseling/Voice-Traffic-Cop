@@ -83,10 +83,13 @@ interface TrafficSignalProps {
 
 const TrafficSignal = ({ position, state }: TrafficSignalProps) => (
   <div className={`signal-cluster signal-cluster--${position}`} aria-hidden="true">
-    <img className="signal-cluster__body" src="/images/signals/juniper-signal-v2.png" alt="" decoding="async" />
-    <span className={`signal-cluster__light signal-cluster__light--red ${state === 'red' ? 'is-lit' : ''}`} />
-    <span className={`signal-cluster__light signal-cluster__light--amber ${state === 'amber' ? 'is-lit' : ''}`} />
-    <span className={`signal-cluster__light signal-cluster__light--green ${state === 'green' ? 'is-lit' : ''}`} />
+    <img
+      key={state}
+      className="signal-cluster__body"
+      src={`/images/signals/juniper-signal-${state}-v3.png`}
+      alt=""
+      decoding="async"
+    />
   </div>
 );
 
