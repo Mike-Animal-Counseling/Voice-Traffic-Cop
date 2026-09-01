@@ -2279,39 +2279,43 @@ kbd {
 
 .signal-cluster__light {
   position: absolute;
-  left: 54.2%;
+  left: 54.55%;
   z-index: 1;
-  width: 14.2%;
-  aspect-ratio: 1;
+  width: 10.4%;
+  height: 5.8%;
   translate: -50% -50%;
   border-radius: 50%;
-  opacity: 0.035;
+  background:
+    radial-gradient(circle at 34% 27%, rgba(255, 255, 255, 0.94) 0 5%, rgba(255, 255, 255, 0.28) 9%, transparent 22%),
+    radial-gradient(circle at 50% 54%, color-mix(in srgb, currentColor 72%, white) 0 30%, currentColor 62%, color-mix(in srgb, currentColor 62%, black) 100%);
+  opacity: 0.025;
+  mix-blend-mode: screen;
   filter: saturate(0.8) brightness(0.64);
   transition: opacity 90ms ease, box-shadow 90ms ease, scale 90ms ease;
 }
 
 .signal-cluster--far-right .signal-cluster__light,
-.signal-cluster--near-right .signal-cluster__light { left: 45.8%; }
+.signal-cluster--near-right .signal-cluster__light { left: 45.45%; }
 
-.signal-cluster__light--red { top: 20.55%; color: #ff5148; background: currentColor; }
-.signal-cluster__light--amber { top: 31.15%; color: #ffc34f; background: currentColor; }
-.signal-cluster__light--green { top: 41.7%; color: #74f2a5; background: currentColor; }
+.signal-cluster__light--red { top: 20.69%; color: #ff5148; }
+.signal-cluster__light--amber { top: 30.94%; color: #ffc34f; }
+.signal-cluster__light--green { top: 40.83%; color: #74f2a5; }
 
 .signal-cluster__light.is-lit {
-  opacity: 1;
-  scale: 1.04;
-  filter: saturate(1.18) brightness(1.18);
+  opacity: 0.94;
+  scale: 1;
+  filter: saturate(1.12) brightness(1.1);
   box-shadow:
-    0 0 0.15rem currentColor,
-    0 0 0.4rem currentColor,
-    0 0 0.78rem color-mix(in srgb, currentColor 62%, transparent),
-    inset 0 0.1rem 0.16rem rgba(255, 255, 255, 0.88);
+    0 0 0.1rem currentColor,
+    0 0 0.28rem color-mix(in srgb, currentColor 72%, transparent),
+    inset 0 0.08rem 0.12rem rgba(255, 255, 255, 0.72),
+    inset 0 -0.12rem 0.16rem rgba(25, 14, 8, 0.2);
   animation: signal-glow 1.4s ease-in-out infinite alternate;
 }
 
 @keyframes signal-glow {
-  from { filter: brightness(0.92); }
-  to { filter: brightness(1.24); }
+  from { filter: saturate(1.08) brightness(1.02); }
+  to { filter: saturate(1.16) brightness(1.16); }
 }
 
 .vehicle {
