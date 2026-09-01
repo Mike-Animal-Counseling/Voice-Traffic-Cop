@@ -118,6 +118,10 @@ src/
 
 Ideas, bug reports, and small improvements are welcome. Open an issue with your browser, operating system, microphone type, and clear reproduction steps when reporting audio-detection problems.
 
+## License
+
+The source code is available under the [MIT License](LICENSE). Images, music, sound effects, and other original media assets are not covered by the MIT License and remain copyright © 2026 Mike-Animal-Counseling. All rights reserved.
+
 ---
 
 <div align="center">
