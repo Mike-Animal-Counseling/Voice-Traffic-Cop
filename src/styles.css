@@ -1262,8 +1262,8 @@ button:focus-visible {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 5.7rem;
+  height: 5.7rem;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -2215,8 +2215,8 @@ kbd {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 2.8rem;
-  height: 2.8rem;
+  width: 4.4rem;
+  height: 4.4rem;
   overflow: hidden;
   transform: translate(-50%, -47%);
   border: 0.24rem solid rgba(255, 228, 159, 0.9);

@@ -94,7 +94,7 @@ const createPedestrians = (): Pedestrian[] => {
 };
 
 const createVehicle = (id: number, direction: Direction): Vehicle => {
-  const laneOffset = direction === 'northbound' || direction === 'eastbound' ? -42 : 42;
+  const laneOffset = direction === 'northbound' || direction === 'eastbound' ? -34 : 34;
   const kind = randomFrom(['bubble', 'beetle', 'snail', 'hopper'] as const);
   const lengthMap = { bubble: 78, beetle: 80, snail: 96, hopper: 94 };
   const widthMap = { bubble: 42, beetle: 44, snail: 46, hopper: 48 };
