@@ -129,3 +129,7 @@ The source code is available under the [MIT License](LICENSE). Images, music, so
 Made for people who have always wanted to conduct rush hour with a hum.
 
 </div>
+
+## Security and deployment
+
+Read the [security policy](SECURITY.md) and [production requirements](docs/PRODUCTION_SECURITY.md) before deployment.
