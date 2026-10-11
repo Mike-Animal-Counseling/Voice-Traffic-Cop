@@ -3,3 +3,13 @@ dist/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# secrets — never commit real credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+credentials.json
